@@ -620,6 +620,13 @@ def lidar_to_camera(points, r_rect, velo2cam):
     return camera_points[..., :3]
 
 
+def box_lidar_to_lidar(data): ## just change the order of data and the angle
+    xyz = data[:, 0:3] # xyx is the lidar coordinate
+    l, h, w = data[:, 3:4], data[:, 4:5], data[:, 5:6]
+    r = data[:, 6:7]
+    return np.concatenate([xyz, w, l, h, r], axis=1)
+
+
 def box_camera_to_lidar(data, r_rect, velo2cam):
     xyz = data[:, 0:3]
     l, h, w = data[:, 3:4], data[:, 4:5], data[:, 5:6]

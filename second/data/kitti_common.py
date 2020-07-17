@@ -137,13 +137,14 @@ def get_kitti_image_info(path,
         image_ids = list(range(image_ids))
 
     def map_func(idx):
-        image_info = {'image_idx': idx, 'pointcloud_num_features': 4}
+        pc_info = {'pc_idx': idx, 'pointcloud_num_features': 4}
         annotations = None
         if velodyne:
-            image_info['velodyne_path'] = get_velodyne_path(
+            pc_info['velodyne_path'] = get_velodyne_path(
                 idx, path, training, relative_path)
-        image_info['img_path'] = get_image_path(idx, path, training,
-                                                relative_path)
+        # image_info['img_path'] = get_image_path(idx, path, training,
+        #                                         relative_path)
+        with_imageshape = False
         if with_imageshape:
             img_path = image_info['img_path']
             if relative_path:
@@ -155,6 +156,7 @@ def get_kitti_image_info(path,
             if relative_path:
                 label_path = str(root_path / label_path)
             annotations = get_label_anno(label_path)
+        calib = False
         if calib:
             calib_path = get_calib_path(
                 idx, path, training, relative_path=False)
@@ -203,9 +205,9 @@ def get_kitti_image_info(path,
             image_info['calib/Tr_velo_to_cam'] = Tr_velo_to_cam
             image_info['calib/Tr_imu_to_velo'] = Tr_imu_to_velo
         if annotations is not None:
-            image_info['annos'] = annotations
-            add_difficulty_to_annos(image_info)
-        return image_info
+            pc_info['annos'] = annotations
+            add_difficulty_to_annos(pc_info)
+        return pc_info
 
     with futures.ThreadPoolExecutor(num_worker) as executor:
         image_infos = executor.map(map_func, image_ids)
@@ -224,12 +226,10 @@ def get_class_to_label_map():
         'Car': 0,
         'Pedestrian': 1,
         'Cyclist': 2,
-        'Van': 3,
-        'Person_sitting': 4,
-        'Truck': 5,
-        'Tram': 6,
-        'Misc': 7,
-        'DontCare': -1,
+        'Others': 3,
+        'Others_moving': 4,
+        'Others_stationary': 5,
+        'Vehicle': 6,
     }
     return class_to_label
 
@@ -507,11 +507,11 @@ def add_difficulty_to_annos(info):
 
     for i in range(len(dims)):
         if is_easy[i]:
-            diff.append(0)
+            diff.append(1)
         elif is_moderate[i]:
             diff.append(1)
         elif is_hard[i]:
-            diff.append(2)
+            diff.append(1)
         else:
             diff.append(-1)
     annos["difficulty"] = np.array(diff, np.int32)

@@ -144,17 +144,17 @@ def generate_example():
     # mask = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device="cuda:0")
 
     # check this rpn outputs for origin pytorch model 
-    pillar_x = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_y = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_z = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_i = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    num_points_per_pillar = torch.ones([1, 9918], dtype=torch.float32, device="cuda:0")
-    x_sub_shaped = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    y_sub_shaped = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    mask = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
+    pillar_x = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_y = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_z = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_i = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    num_points_per_pillar = torch.ones([1, 10000], dtype=torch.float32, device="cuda:0")
+    x_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    y_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    mask = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
 
     device = torch.device("cuda:0")
-    coors_numpy = np.loadtxt('coors.txt', dtype=np.int32)
+    coors_numpy = np.loadtxt('./onnx_predict_outputs/coors.txt', dtype=np.int32)
     coors = torch.from_numpy(coors_numpy)
     coors = coors.to(device)
     # coors = coors.to(device).cuda()
@@ -260,14 +260,14 @@ def onnx_model_predict(config_path=None, model_dir=None):
     # mask = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device="cuda:0")
 
     # check the rpn onnx model IR input paramters as follows 
-    pillar_x = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_y = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_z = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    pillar_i = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    num_points_per_pillar = torch.ones([1, 9918], dtype=torch.float32, device="cuda:0")
-    x_sub_shaped = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    y_sub_shaped = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
-    mask = torch.ones([1, 1, 9918, 100], dtype=torch.float32, device="cuda:0")
+    pillar_x = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_y = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_z = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    pillar_i = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    num_points_per_pillar = torch.ones([1, 10000], dtype=torch.float32, device="cuda:0")
+    x_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    y_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
+    mask = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device="cuda:0")
 
 
     pfe_session = onnxruntime.InferenceSession("pfe.onnx")
@@ -285,6 +285,8 @@ def onnx_model_predict(config_path=None, model_dir=None):
     pfe_outs = pfe_session.run(None, pfe_inputs)
     print('-------------------------- PFE ONNX Outputs ----------------------------')
     print(pfe_outs) # also you could save it to file for comparing
+    with open("pfe_feature_onnx.txt", 'w') as f:
+        f.write(str(pfe_outs))
     print('-------------------------- PFE ONNX Ending ----------------------------')
     ##########################Middle-Features-Extractor#########################
     # numpy --> tensor
@@ -331,6 +333,13 @@ def onnx_model_predict(config_path=None, model_dir=None):
     print('---------------------- RPN ONNX Outputs ----------------------')
     print(rpn_outs)
     print('---------------------- RPN ONNX Ending ----------------------')
+    with open('rpn_box_onnx.txt', 'w') as f1:
+        f1.write(str(rpn_outs[0]))
+    with open("rpn_cls_onnx.txt", 'w') as f2:
+        f2.write(str(rpn_outs[1]))
+    with open("rpn_dir_onnx.txt", 'w') as f3:
+        f3.write(str(rpn_outs[2]))
+
 
 if __name__ == '__main__':
     fire.Fire()

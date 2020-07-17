@@ -32,13 +32,13 @@ def _calculate_num_points_in_gt(data_path, infos, relative_path, remove_outside=
         else:
             v_path = info["velodyne_path"]
         points_v = np.fromfile(
-            v_path, dtype=np.float32, count=-1).reshape([-1, num_features])
-        rect = info['calib/R0_rect']
-        Trv2c = info['calib/Tr_velo_to_cam']
-        P2 = info['calib/P2']
-        if remove_outside:
-            points_v = box_np_ops.remove_outside_points(points_v, rect, Trv2c, P2,
-                                                        info["img_shape"])
+            v_path, dtype=np.float64, count=-1).reshape([-1, num_features])
+        # rect = info['calib/R0_rect']
+        # Trv2c = info['calib/Tr_velo_to_cam']
+        # P2 = info['calib/P2']
+        # if remove_outside:
+        #     points_v = box_np_ops.remove_outside_points(points_v, rect, Trv2c, P2,
+        #                                                 info["img_shape"])
 
         # points_v = points_v[points_v[:, 0] > 0]
         annos = info['annos']
@@ -47,10 +47,18 @@ def _calculate_num_points_in_gt(data_path, infos, relative_path, remove_outside=
         dims = annos['dimensions'][:num_obj]
         loc = annos['location'][:num_obj]
         rots = annos['rotation_y'][:num_obj]
-        gt_boxes_camera = np.concatenate(
+        # gt_boxes_camera = np.concatenate(
+        #     [loc, dims, rots[..., np.newaxis]], axis=1)
+        # gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
+        #     gt_boxes_camera, rect, Trv2c)
+
+        gt_boxes_lidar0 = np.concatenate(
             [loc, dims, rots[..., np.newaxis]], axis=1)
-        gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
-            gt_boxes_camera, rect, Trv2c)
+        gt_boxes_lidar = box_np_ops.box_lidar_to_lidar(
+            gt_boxes_lidar0
+        )
+
+        # get lidar boxes[[x, y, z, w, l, h, ry],...], ry is the rotation in label, ry=-pi/2-rz.
         indices = box_np_ops.points_in_rbbox(points_v[:, :3], gt_boxes_lidar)
         num_points_in_gt = indices.sum(0)
         num_ignored = len(annos['dimensions']) - num_obj
@@ -81,7 +89,7 @@ def create_kitti_info_file(data_path,
         image_ids=train_img_ids,
         relative_path=relative_path)
     _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
-    filename = save_path / 'kitti_infos_train.pkl'
+    filename = save_path / 'neolix_infos_train.pkl'
     print(f"Kitti info train file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_train, f)
@@ -93,7 +101,7 @@ def create_kitti_info_file(data_path,
         image_ids=val_img_ids,
         relative_path=relative_path)
     _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
-    filename = save_path / 'kitti_infos_val.pkl'
+    filename = save_path / 'neolix_infos_val.pkl'
     print(f"Kitti info val file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_val, f)
@@ -111,7 +119,7 @@ def create_kitti_info_file(data_path,
         with open(filename, 'wb') as f:
             pickle.dump(kitti_infos_trainval, f)
     """
-    filename = save_path / 'kitti_infos_trainval.pkl'
+    filename = save_path / 'neolix_infos_trainval.pkl'
     print(f"Kitti info trainval file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_train + kitti_infos_val, f)
@@ -124,7 +132,7 @@ def create_kitti_info_file(data_path,
         calib=True,
         image_ids=test_img_ids,
         relative_path=relative_path)
-    filename = save_path / 'kitti_infos_test.pkl'
+    filename = save_path / 'neolix_infos_test.pkl'
     print(f"Kitti info test file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_test, f)
@@ -140,7 +148,7 @@ def _create_reduced_point_cloud(data_path,
         v_path = info['velodyne_path']
         v_path = pathlib.Path(data_path) / v_path
         points_v = np.fromfile(
-            str(v_path), dtype=np.float32, count=-1).reshape([-1, 4])
+            str(v_path), dtype=np.float64, count=-1).reshape([-1, 4])
         rect = info['calib/R0_rect']
         P2 = info['calib/P2']
         Trv2c = info['calib/Tr_velo_to_cam']
@@ -173,11 +181,11 @@ def create_reduced_point_cloud(data_path,
                                save_path=None,
                                with_back=False):
     if train_info_path is None:
-        train_info_path = pathlib.Path(data_path) / 'kitti_infos_train.pkl'
+        train_info_path = pathlib.Path(data_path) / 'neolix_infos_train.pkl'
     if val_info_path is None:
-        val_info_path = pathlib.Path(data_path) / 'kitti_infos_val.pkl'
+        val_info_path = pathlib.Path(data_path) / 'neolix_infos_val.pkl'
     if test_info_path is None:
-        test_info_path = pathlib.Path(data_path) / 'kitti_infos_test.pkl'
+        test_info_path = pathlib.Path(data_path) / 'neolix_infos_test.pkl'
 
     _create_reduced_point_cloud(data_path, train_info_path, save_path)
     _create_reduced_point_cloud(data_path, val_info_path, save_path)
@@ -202,13 +210,13 @@ def create_groundtruth_database(data_path,
                                 coors_range=None):
     root_path = pathlib.Path(data_path)
     if info_path is None:
-        info_path = root_path / 'kitti_infos_train.pkl'
+        info_path = root_path / 'neolix_infos_train.pkl'
     if database_save_path is None:
         database_save_path = root_path / 'gt_database'
     else:
         database_save_path = pathlib.Path(database_save_path)
     if db_info_save_path is None:
-        db_info_save_path = root_path / "kitti_dbinfos_train.pkl"
+        db_info_save_path = root_path / "neolix_dbinfos_train.pkl"
     database_save_path.mkdir(parents=True, exist_ok=True)
     with open(info_path, 'rb') as f:
         kitti_infos = pickle.load(f)
@@ -228,15 +236,16 @@ def create_groundtruth_database(data_path,
         if 'pointcloud_num_features' in info:
             num_features = info['pointcloud_num_features']
         points = np.fromfile(
-            velodyne_path, dtype=np.float32, count=-1).reshape([-1, num_features])
+            velodyne_path, dtype=np.float64, count=-1).reshape([-1, num_features])
 
-        image_idx = info["image_idx"]
-        rect = info['calib/R0_rect']
-        P2 = info['calib/P2']
-        Trv2c = info['calib/Tr_velo_to_cam']
-        if not lidar_only:
-            points = box_np_ops.remove_outside_points(points, rect, Trv2c, P2,
-                                                        info["img_shape"])
+        pc_idx = info["pc_idx"]
+        # image_idx = info["image_idx"]
+        # rect = info['calib/R0_rect']
+        # P2 = info['calib/P2']
+        # Trv2c = info['calib/Tr_velo_to_cam']
+        # if not lidar_only:
+        #     points = box_np_ops.remove_outside_points(points, rect, Trv2c, P2,
+        #                                                 info["img_shape"])
 
         annos = info["annos"]
         names = annos["name"]
@@ -244,8 +253,10 @@ def create_groundtruth_database(data_path,
         difficulty = annos["difficulty"]
         gt_idxes = annos["index"]
         num_obj = np.sum(annos["index"] >= 0)
-        rbbox_cam = kitti.anno_to_rbboxes(annos)[:num_obj]
-        rbbox_lidar = box_np_ops.box_camera_to_lidar(rbbox_cam, rect, Trv2c)
+        # rbbox_cam = kitti.anno_to_rbboxes(annos)[:num_obj]
+        # rbbox_lidar = box_np_ops.box_camera_to_lidar(rbbox_cam, rect, Trv2c)
+        rbbox_lidar0 = kitti.anno_to_rbboxes(annos)[:num_obj]  # check the demension
+        rbbox_lidar = box_np_ops.box_lidar_to_lidar(rbbox_lidar0)
         if bev_only: # set z and h to limits
             assert coors_range is not None
             rbbox_lidar[:, 2] = coors_range[2]
@@ -259,7 +270,7 @@ def create_groundtruth_database(data_path,
             group_ids = np.arange(bboxes.shape[0], dtype=np.int64)
         point_indices = box_np_ops.points_in_rbbox(points, rbbox_lidar)
         for i in range(num_obj):
-            filename = f"{image_idx}_{names[i]}_{gt_idxes[i]}.bin"
+            filename = f"{pc_idx}_{names[i]}_{gt_idxes[i]}.bin"
             filepath = database_save_path / filename
             gt_points = points[point_indices[:, i]]
 
@@ -274,7 +285,7 @@ def create_groundtruth_database(data_path,
                 db_info = {
                     "name": names[i],
                     "path": db_path,
-                    "image_idx": image_idx,
+                    "pc_idx": pc_idx,
                     "gt_idx": gt_idxes[i],
                     "box3d_lidar": rbbox_lidar[i],
                     "num_points_in_gt": gt_points.shape[0],

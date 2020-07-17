@@ -91,27 +91,27 @@ def prep_pointcloud(input_dict,
         group_ids = None
         if use_group_id and "group_ids" in input_dict:
             group_ids = input_dict["group_ids"]
-    rect = input_dict["rect"]
-    Trv2c = input_dict["Trv2c"]
-    P2 = input_dict["P2"]
+    # rect = input_dict["rect"]
+    # Trv2c = input_dict["Trv2c"]
+    # P2 = input_dict["P2"]
     unlabeled_training = unlabeled_db_sampler is not None
-    image_idx = input_dict["image_idx"]
+    pc_idx = input_dict["pc_idx"]
 
-    if reference_detections is not None:
-        C, R, T = box_np_ops.projection_matrix_to_CRT_kitti(P2)
-        frustums = box_np_ops.get_frustum_v2(reference_detections, C)
-        frustums -= T
-        # frustums = np.linalg.inv(R) @ frustums.T
-        frustums = np.einsum('ij, akj->aki', np.linalg.inv(R), frustums)
-        frustums = box_np_ops.camera_to_lidar(frustums, rect, Trv2c)
-        surfaces = box_np_ops.corner_to_surfaces_3d_jit(frustums)
-        masks = points_in_convex_polygon_3d_jit(points, surfaces)
-        points = points[masks.any(-1)]
-
-    if remove_outside_points and not lidar_input:
-        image_shape = input_dict["image_shape"]
-        points = box_np_ops.remove_outside_points(points, rect, Trv2c, P2,
-                                                  image_shape)
+    # if reference_detections is not None:
+    #     C, R, T = box_np_ops.projection_matrix_to_CRT_kitti(P2)
+    #     frustums = box_np_ops.get_frustum_v2(reference_detections, C)
+    #     frustums -= T
+    #     # frustums = np.linalg.inv(R) @ frustums.T
+    #     frustums = np.einsum('ij, akj->aki', np.linalg.inv(R), frustums)
+    #     frustums = box_np_ops.camera_to_lidar(frustums, rect, Trv2c)
+    #     surfaces = box_np_ops.corner_to_surfaces_3d_jit(frustums)
+    #     masks = points_in_convex_polygon_3d_jit(points, surfaces)
+    #     points = points[masks.any(-1)]
+    #
+    # if remove_outside_points and not lidar_input:
+    #     image_shape = input_dict["image_shape"]
+    #     points = box_np_ops.remove_outside_points(points, rect, Trv2c, P2,
+    #                                               image_shape)
     if remove_environment is True and training:
         selected = kitti.keep_arrays_by_name(gt_names, class_names)
         gt_boxes = gt_boxes[selected]
@@ -129,7 +129,8 @@ def prep_pointcloud(input_dict,
         if group_ids is not None:
             group_ids = group_ids[selected]
 
-        gt_boxes = box_np_ops.box_camera_to_lidar(gt_boxes, rect, Trv2c)
+        # gt_boxes = box_np_ops.box_camera_to_lidar(gt_boxes, rect, Trv2c)
+        gt_boxes = box_np_ops.box_lidar_to_lidar(gt_boxes)
         if remove_unknown:
             remove_mask = difficulty == -1
             """
@@ -145,6 +146,7 @@ def prep_pointcloud(input_dict,
                 group_ids = group_ids[keep_mask]
         gt_boxes_mask = np.array(
             [n in class_names for n in gt_names], dtype=np.bool_)
+        db_sampler = None
         if db_sampler is not None:
             sampled_dict = db_sampler.sample_all(
                 root_path,
@@ -242,11 +244,11 @@ def prep_pointcloud(input_dict,
         'coordinates': coordinates,
         "num_voxels": np.array([voxels.shape[0]], dtype=np.int64)
     }
-    example.update({
-        'rect': rect,
-        'Trv2c': Trv2c,
-        'P2': P2,
-    })
+    # example.update({
+    #     'rect': rect,
+    #     'Trv2c': Trv2c,
+    #     'P2': P2,
+    # })
     # if not lidar_input:
     feature_map_size = grid_size[:2] // out_size_factor
     feature_map_size = [*feature_map_size, 1][::-1]
@@ -310,24 +312,24 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     # velodyne_path += '_reduced'
     v_path = pathlib.Path(root_path) / info['velodyne_path']
     v_path = v_path.parent.parent / (
-        v_path.parent.stem + "_reduced") / v_path.name
+        v_path.parent.stem) / v_path.name
 
     points = np.fromfile(
-        str(v_path), dtype=np.float32,
+        str(v_path), dtype=np.float64,
         count=-1).reshape([-1, num_point_features])
-    image_idx = info['image_idx']
-    rect = info['calib/R0_rect'].astype(np.float32)
-    Trv2c = info['calib/Tr_velo_to_cam'].astype(np.float32)
-    P2 = info['calib/P2'].astype(np.float32)
+    pc_idx = info['pc_idx']
+    # rect = info['calib/R0_rect'].astype(np.float32)
+    # Trv2c = info['calib/Tr_velo_to_cam'].astype(np.float32)
+    # P2 = info['calib/P2'].astype(np.float32)
 
     input_dict = {
         'points': points,
-        'rect': rect,
-        'Trv2c': Trv2c,
-        'P2': P2,
-        'image_shape': np.array(info["img_shape"], dtype=np.int32),
-        'image_idx': image_idx,
-        'image_path': info['img_path'],
+        # 'rect': rect,
+        # 'Trv2c': Trv2c,
+        # 'P2': P2,
+        # 'image_shape': np.array(info["img_shape"], dtype=np.int32),
+        'pc_idx': pc_idx,
+        'velodyne_path': info['velodyne_path'],
         # 'pointcloud_num_features': num_point_features,
     }
 
@@ -352,8 +354,8 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
         if 'group_ids' in annos:
             input_dict['group_ids'] = annos["group_ids"]
     example = prep_func(input_dict=input_dict)
-    example["image_idx"] = image_idx
-    example["image_shape"] = input_dict["image_shape"]
+    example["pc_idx"] = pc_idx
+    # example["image_shape"] = input_dict["image_shape"]
     if "anchors_mask" in example:
         example["anchors_mask"] = example["anchors_mask"].astype(np.uint8)
     return example

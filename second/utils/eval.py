@@ -37,7 +37,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'van', 'person_sitting', 'car', 'tractor', 'trailer']
+    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'others', 'others_moving', 'others_stationary', 'vehicle']
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -61,11 +61,11 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
         else:
             valid_class = -1
         ignore = False
-        if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
-                or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
-                or (height <= MIN_HEIGHT[difficulty])):
-            # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
-            ignore = True
+        # if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
+        #         or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
+        #         or (height <= MIN_HEIGHT[difficulty])):
+        #     # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
+        #     ignore = True
         if valid_class == 1 and not ignore:
             ignored_gt.append(0)
             num_valid_gt += 1
@@ -81,10 +81,10 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
             valid_class = 1
         else:
             valid_class = -1
-        height = abs(dt_anno["bbox"][i, 3] - dt_anno["bbox"][i, 1])
-        if height < MIN_HEIGHT[difficulty]:
-            ignored_dt.append(1)
-        elif valid_class == 1:
+        # height = abs(dt_anno["bbox"][i, 3] - dt_anno["bbox"][i, 1])
+        # if height < MIN_HEIGHT[difficulty]:
+        #     ignored_dt.append(1)
+        if valid_class == 1:
             ignored_dt.append(0)
         else:
             ignored_dt.append(-1)
@@ -797,14 +797,13 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5]])
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
     class_to_name = {
-        0: 'Car',
+        0: 'Vehicle',
         1: 'Pedestrian',
         2: 'Cyclist',
-        3: 'Van',
-        4: 'Person_sitting',
-        5: 'car',
-        6: 'tractor',
-        7: 'trailer',
+        3: 'Others',
+        4: 'Others_moving',
+        5: 'Others_stationary',
+        6: 'Car',
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
@@ -858,11 +857,10 @@ def get_coco_eval_result(gt_annos, dt_annos, current_classes):
         0: 'Car',
         1: 'Pedestrian',
         2: 'Cyclist',
-        3: 'Van',
-        4: 'Person_sitting',
-        5: 'car',
-        6: 'tractor',
-        7: 'trailer',
+        3: 'Others',
+        4: 'Others_moving',
+        5: 'Others_stationary',
+        6: 'Vehicle',
     }
     class_to_range = {
         0: [0.5, 1.0, 0.05],

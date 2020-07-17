@@ -120,7 +120,16 @@ class PillarFeatureNet(nn.Module):
         self.x_offset = self.vx / 2 + pc_range[0]
         self.y_offset = self.vy / 2 + pc_range[1]
 
-    def forward(self, pillar_x, pillar_y, pillar_z, pillar_i, num_voxels, x_sub_shaped, y_sub_shaped, mask):
+    def forward(self, example):
+        # example: pillar_x, pillar_y, pillar_z, pillar_i, num_voxels, x_sub_shaped, y_sub_shaped, mask
+        pillar_x = example[0]
+        pillar_y = example[1]
+        pillar_z = example[2]
+        pillar_i = example[3]
+        num_voxels = example[4]
+        x_sub_shaped = example[5]
+        y_sub_shaped = example[6]
+        mask = example[7]
 
         # Find distance of x, y, and z from cluster center
         # pillar_xyz =  torch.cat((pillar_x, pillar_y, pillar_z), 3)

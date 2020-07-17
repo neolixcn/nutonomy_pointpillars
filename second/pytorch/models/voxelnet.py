@@ -3,7 +3,7 @@ from enum import Enum
 from functools import reduce
 
 import numpy as np
-import sparseconvnet as scn
+# import sparseconvnet as scn
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -669,6 +669,9 @@ class VoxelNet(nn.Module):
         # training input [0:pillar_x, 1:pillar_y, 2:pillar_z, 3:pillar_i,
         #                 4:num_points_per_pillar, 5:x_sub_shaped, 6:y_sub_shaped, 7:mask, 8:coors
         #                 9:anchors, 10:labels, 11:reg_targets]
+        # eval input [0: pillar_x, 1: pillar_y, 2: pillar_z, 3: pillar_i,
+        #              4: num_points_per_pillar, 5: x_sub_shaped, 6: y_sub_shaped, 7: mask, 8: coors,
+        #              9: anchors, 10: anchors_mask, 11: pc_idx]
 
         pillar_x = example[0]
         pillar_y = example[1]
@@ -679,8 +682,7 @@ class VoxelNet(nn.Module):
         y_sub_shaped = example[6]
         mask = example[7]
 
-        voxel_features = self.voxel_feature_extractor(pillar_x, pillar_y, pillar_z, pillar_i,
-                                                      num_points, x_sub_shaped, y_sub_shaped, mask)
+        voxel_features = self.voxel_feature_extractor(example[:8])
 
         ###################################################################################
         # return voxel_features ### onnx voxel_features export
@@ -758,17 +760,17 @@ class VoxelNet(nn.Module):
         batch_anchors = example[9].view(batch_size, -1, 7)
 
         self._total_inference_count += batch_size
-        batch_rect = example[11]
-        batch_Trv2c = example[12]
-        batch_P2 = example[13]
+        # batch_rect = example[11]
+        # batch_Trv2c = example[12]
+        # batch_P2 = example[13]
         # if "anchors_mask" not in example:
         #     batch_anchors_mask = [None] * batch_size
         # else:
         #     batch_anchors_mask = example["anchors_mask"].view(batch_size, -1)
-        assert 15==len(example), "somthing write with example size!"
+        assert 12==len(example), "somthing write with example size!"
         batch_anchors_mask = example[10].view(batch_size, -1)
         # batch_imgidx = example['image_idx']
-        batch_imgidx = example[14]
+        batch_pc_idx = example[11]
 
         self._total_forward_time += time.time() - t
         t = time.time()
@@ -792,9 +794,9 @@ class VoxelNet(nn.Module):
 
         # predictions_dicts = []
         predictions_dicts = ()
-        for box_preds, cls_preds, dir_preds, rect, Trv2c, P2, img_idx, a_mask in zip(
-                batch_box_preds, batch_cls_preds, batch_dir_preds, batch_rect,
-                batch_Trv2c, batch_P2, batch_imgidx, batch_anchors_mask
+        for box_preds, cls_preds, dir_preds, pc_idx, a_mask in zip(
+                batch_box_preds, batch_cls_preds, batch_dir_preds,
+                batch_pc_idx, batch_anchors_mask
         ):
             if a_mask is not None:
                 box_preds = box_preds[a_mask]
@@ -932,30 +934,31 @@ class VoxelNet(nn.Module):
                 final_box_preds = box_preds
                 final_scores = scores
                 final_labels = label_preds
-                final_box_preds_camera = box_torch_ops.box_lidar_to_camera(
-                    final_box_preds, rect, Trv2c)
-                locs = final_box_preds_camera[:, :3]
-                dims = final_box_preds_camera[:, 3:6]
-                angles = final_box_preds_camera[:, 6]
-                camera_box_origin = [0.5, 1.0, 0.5]
-                box_corners = box_torch_ops.center_to_corner_box3d(
-                    locs, dims, angles, camera_box_origin, axis=1)
-                box_corners_in_image = box_torch_ops.project_to_image(
-                    box_corners, P2)
-                # box_corners_in_image: [N, 8, 2]
-                minxy = torch.min(box_corners_in_image, dim=1)[0]
-                maxxy = torch.max(box_corners_in_image, dim=1)[0]
-                # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
-                # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
-                # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
-                # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
-                # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
-                box_2d_preds = torch.cat([minxy, maxxy], dim=1)
-
-                predictions_dict = (box_2d_preds, final_box_preds_camera,
-                                    final_box_preds, final_scores, label_preds, img_idx)
+                # final_box_preds_camera = box_torch_ops.box_lidar_to_camera(
+                #     final_box_preds, rect, Trv2c)
+                # locs = final_box_preds_camera[:, :3]
+                # dims = final_box_preds_camera[:, 3:6]
+                # angles = final_box_preds_camera[:, 6]
+                # camera_box_origin = [0.5, 1.0, 0.5]
+                # box_corners = box_torch_ops.center_to_corner_box3d(
+                #     locs, dims, angles, camera_box_origin, axis=1)
+                # box_corners_in_image = box_torch_ops.project_to_image(
+                #     box_corners, P2)
+                # # box_corners_in_image: [N, 8, 2]
+                # minxy = torch.min(box_corners_in_image, dim=1)[0]
+                # maxxy = torch.max(box_corners_in_image, dim=1)[0]
+                # # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
+                # # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
+                # # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
+                # # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
+                # # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
+                # box_2d_preds = torch.cat([minxy, maxxy], dim=1)
+                #
+                # predictions_dict = (box_2d_preds, final_box_preds_camera,
+                #                     final_box_preds, final_scores, label_preds, img_idx)
+                predictions_dict = (final_box_preds, final_scores, label_preds, pc_idx)
             else:
-                predictions_dict = (None, None, None, None, None, img_idx)
+                predictions_dict = (None, None, None, pc_idx)
             # predictions_dicts.append(predictions_dict)
             predictions_dicts += (predictions_dict, )
         self._total_postprocess_time += time.time() - t

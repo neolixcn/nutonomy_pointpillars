@@ -85,7 +85,7 @@ def flat_nested_json_dict(json_dict, sep=".") -> dict:
 def example_convert_to_torch(example, dtype=torch.float32, device=None) -> dict:
     device = device or torch.device("cuda:0")
     example_torch = {}
-    float_names = ["voxels", "anchors", "reg_targets", "reg_weights", "bev_map", "rect", "Trv2c", "P2"]
+    float_names = ["voxels", "anchors", "reg_targets", "reg_weights", "bev_map"]
 
     for k, v in example.items():
         if k in float_names:
@@ -260,10 +260,10 @@ def train(config_path,
                 batch_size = example["anchors"].shape[0]
 
                 example_tuple = list(example_torch.values())
-                example_tuple[11] = torch.from_numpy(example_tuple[11])
-                example_tuple[12] = torch.from_numpy(example_tuple[12])
+                example_tuple[8] = torch.from_numpy(example_tuple[8])
+                # example_tuple[12] = torch.from_numpy(example_tuple[12])
 
-                assert 13 == len(example_tuple), "something write with training input size!"
+                assert 9 == len(example_tuple), "something write with training input size!"
 
                 # ret_dict = net(example_torch)
 
@@ -287,8 +287,8 @@ def train(config_path,
                 ################################################################
 
                 # assumes xyres_16
-                x_sub = coors_x.unsqueeze(1) * 0.16 + 0.08
-                y_sub = coors_y.unsqueeze(1) * 0.16 - 39.6
+                x_sub = coors_x.unsqueeze(1) * 0.16 - 22.96
+                y_sub = coors_y.unsqueeze(1) * 0.16 - 22.96
                 ones = torch.ones([1, 100], dtype=torch.float32, device=pillar_x.device)
                 x_sub_shaped = torch.mm(x_sub, ones).unsqueeze(0).unsqueeze(0)
                 y_sub_shaped = torch.mm(y_sub, ones).unsqueeze(0).unsqueeze(0)
@@ -300,9 +300,9 @@ def train(config_path,
                 mask = mask.type_as(pillar_x)
 
                 coors = example_tuple[2]
-                anchors = example_tuple[6]
-                labels = example_tuple[8]
-                reg_targets = example_tuple[9]
+                anchors = example_tuple[3]
+                labels = example_tuple[5]
+                reg_targets = example_tuple[6]
 
                 input = [pillar_x, pillar_y, pillar_z, pillar_i, num_points_per_pillar,
                          x_sub_shaped, y_sub_shaped, mask, coors, anchors, labels, reg_targets]
@@ -321,7 +321,7 @@ def train(config_path,
                 cls_loss = ret_dict[1]
                 dir_loss_reduced = ret_dict[6]
                 cared = ret_dict[9]
-                labels = example_tuple[8]
+                labels = example_tuple[5]
                 if train_cfg.enable_mixed_precision:
                     loss *= loss_scale
                 loss.backward()
@@ -342,7 +342,7 @@ def train(config_path,
                 #     num_anchors = example_torch['anchors'].shape[1]
                 # else:
                 #     num_anchors = int(example_torch['anchors_mask'][0].sum())
-                num_anchors = int(example_tuple[7][0].sum())
+                num_anchors = int(example_tuple[4][0].sum())
                 global_step = net.get_global_step()
                 if global_step % display_step == 0:
                     loc_loss_elem = [
@@ -368,7 +368,7 @@ def train(config_path,
                     metrics["num_neg"] = int(num_neg)
                     metrics["num_anchors"] = int(num_anchors)
                     metrics["lr"] = float(mixed_optimizer.param_groups[0]['lr'])
-                    metrics["image_idx"] = example_tuple[11][0]
+                    metrics["pc_idx"] = example_tuple[8][0]
                     flatted_metrics = flat_nested_json_dict(metrics)
                     flatted_summarys = flat_nested_json_dict(metrics, "/")
                     for k, v in flatted_summarys.items():
@@ -477,14 +477,13 @@ def predict_kitti_to_anno(net,
                           lidar_input=False,
                           global_set=None):
 
-    # eval example : [0: 'voxels', 1: 'num_points', 2: 'coordinates', 3: 'rect'
-    #                 4: 'Trv2c', 5: 'P2', 6: 'anchors', 7: 'anchors_mask'
-    #                 8: 'image_idx', 9: 'image_shape']
+    # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
+    # 4: 'anchor_mask', 5: 'pc_idx']
 
 
-    batch_image_shape = example[9]
-
-    batch_imgidx = example[8]
+    # batch_image_shape = example[9]
+    #
+    # batch_imgidx = example[8]
 
     pillar_x = example[0][:, :, 0].unsqueeze(0).unsqueeze(0)
     pillar_y = example[0][:, :, 1].unsqueeze(0).unsqueeze(0)
@@ -496,8 +495,8 @@ def predict_kitti_to_anno(net,
     # assuming xyres_16.proto
     coors_x = example[2][:, 3].float()
     coors_y = example[2][:, 2].float()
-    x_sub = coors_x.unsqueeze(1) * 0.16 + 0.1
-    y_sub = coors_y.unsqueeze(1) * 0.16 + -39.9
+    x_sub = coors_x.unsqueeze(1) * 0.16 - 22.96
+    y_sub = coors_y.unsqueeze(1) * 0.16 - 22.96
     ones = torch.ones([1, 100], dtype=torch.float32, device=pillar_x.device)
     x_sub_shaped = torch.mm(x_sub, ones).unsqueeze(0).unsqueeze(0)
     y_sub_shaped = torch.mm(y_sub, ones).unsqueeze(0).unsqueeze(0)
@@ -509,62 +508,67 @@ def predict_kitti_to_anno(net,
     mask = mask.type_as(pillar_x)
 
     coors   = example[2]
-    anchors = example[6]
-    anchors_mask = example[7]
+    anchors = example[3]
+    anchors_mask = example[4]
     anchors_mask = torch.as_tensor(anchors_mask, dtype=torch.uint8, device=pillar_x.device)
     anchors_mask = anchors_mask.byte()
-    rect = example[3]
-    Trv2c = example[4]
-    P2 = example[5]
-    image_idx = example[8]
+    # rect = example[3]
+    # Trv2c = example[4]
+    # P2 = example[5]
+    pc_idx = example[5]
 
     input = [pillar_x, pillar_y, pillar_z, pillar_i,
              num_points_per_pillar, x_sub_shaped, y_sub_shaped,
-             mask, coors, anchors, anchors_mask, rect, Trv2c, P2, image_idx]
+             mask, coors, anchors, anchors_mask, pc_idx]
 
     predictions_dicts = net(input)
 
     annos = []
     for i, preds_dict in enumerate(predictions_dicts):
-        image_shape = batch_image_shape[i]
-        img_idx = preds_dict[5]
+        # image_shape = batch_image_shape[i]
+        pc_idx = preds_dict[3]
 
         if preds_dict[0] is not None: # bbox list
-            box_2d_preds = preds_dict[0].detach().cpu().numpy() # bbox
-            box_preds = preds_dict[1].detach().cpu().numpy() # bbox3d_camera
-            scores = preds_dict[3].detach().cpu().numpy() # scores
-            box_preds_lidar = preds_dict[2].detach().cpu().numpy() # box3d_lidar
+            # box_2d_preds = preds_dict[0].detach().cpu().numpy() # bbox
+            # box_preds = preds_dict[1].detach().cpu().numpy() # bbox3d_camera
+            scores = preds_dict[1].detach().cpu().numpy() # scores
+            box_preds_lidar = preds_dict[0].detach().cpu().numpy() # box3d_lidar
             # write pred to file
-            label_preds = preds_dict[4].detach().cpu().numpy() # label_preds
+            label_preds = preds_dict[2].detach().cpu().numpy() # label_preds
 
             anno = kitti.get_start_result_anno()
             num_example = 0
-            for box, box_lidar, bbox, score, label in zip(
-                    box_preds, box_preds_lidar, box_2d_preds, scores,
-                    label_preds):
-                if not lidar_input:
-                    if bbox[0] > image_shape[1] or bbox[1] > image_shape[0]:
-                        continue
-                    if bbox[2] < 0 or bbox[3] < 0:
-                        continue
+            content = ''
+            for box_lidar, score, label in zip(
+                    box_preds_lidar, scores, label_preds):
+                # if not lidar_input:
+                #     if bbox[0] > image_shape[1] or bbox[1] > image_shape[0]:
+                #         continue
+                #     if bbox[2] < 0 or bbox[3] < 0:
+                #         continue
                 # print(img_shape)
                 if center_limit_range is not None:
                     limit_range = np.array(center_limit_range)
                     if (np.any(box_lidar[:3] < limit_range[:3])
                             or np.any(box_lidar[:3] > limit_range[3:])):
                         continue
-                image_shape = [image_shape[0], image_shape[1]]
-                bbox[2:] = np.minimum(bbox[2:], image_shape[::-1])
-                bbox[:2] = np.maximum(bbox[:2], [0, 0])
+                # image_shape = [image_shape[0], image_shape[1]]
+                # bbox[2:] = np.minimum(bbox[2:], image_shape[::-1])
+                # bbox[:2] = np.maximum(bbox[:2], [0, 0])
+                content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(
+                    box_lidar[3]) + " " \
+                           + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(
+                    box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
+
                 anno["name"].append(class_names[int(label)])
                 anno["truncated"].append(0.0)
                 anno["occluded"].append(0)
                 anno["alpha"].append(-np.arctan2(-box_lidar[1], box_lidar[0]) +
-                                     box[6])
-                anno["bbox"].append(bbox)
-                anno["dimensions"].append(box[3:6])
-                anno["location"].append(box[:3])
-                anno["rotation_y"].append(box[6])
+                                     box_lidar[6])
+                anno["bbox"].append(np.array([0, 0, 0, 0]))
+                anno["dimensions"].append([box_lidar[4], box_lidar[5], box_lidar[3]])
+                anno["location"].append(box_lidar[:3])
+                anno["rotation_y"].append(box_lidar[6])
                 if global_set is not None:
                     for i in range(100000):
                         if score in global_set:
@@ -583,8 +587,8 @@ def predict_kitti_to_anno(net,
         else:
             annos.append(kitti.empty_result_anno())
         num_example = annos[-1]["name"].shape[0]
-        annos[-1]["image_idx"] = np.array(
-            [img_idx] * num_example, dtype=np.int64)
+        annos[-1]["pc_idx"] = np.array(
+            [pc_idx] * num_example, dtype=np.int64)
     return annos
 
 
@@ -672,16 +676,16 @@ def evaluate(config_path,
     bar.start(len(eval_dataset) // input_cfg.batch_size + 1)
 
     for example in iter(eval_dataloader):
-        # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinates', 3: 'rect'
-        #               4: 'Trv2c', 5: 'P2', 6: 'anchors', 7: 'anchors_mask'
-        #               8: 'image_idx', 9: 'image_shape']
+        # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
+        # 4: 'anchor_mask', 5: 'pc_idx']
+
         example = example_convert_to_torch(example, float_dtype)
 
         example_tuple = list(example.values())
-        example_tuple[8] = torch.from_numpy(example_tuple[8])
-        example_tuple[9] = torch.from_numpy(example_tuple[9])
+        example_tuple[5] = torch.from_numpy(example_tuple[5])
+        # example_tuple[9] = torch.from_numpy(example_tuple[9])
 
-        if (example_tuple[6].size()[0] != input_cfg.batch_size):
+        if (example_tuple[3].size()[0] != input_cfg.batch_size):
             continue
 
         if pickle_result:
@@ -700,8 +704,8 @@ def evaluate(config_path,
     print(f"avg postprocess time per example: {net.avg_postprocess_time:.3f}")
     if not predict_test:
         gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
-        if (len(gt_annos)%2 != 0):
-            del gt_annos[-1]
+        # if (len(gt_annos)%2 != 0):
+        #     del gt_annos[-1]
         if not pickle_result:
             dt_annos = kitti.get_label_annos(result_path_step)
         result = get_official_eval_result(gt_annos, dt_annos, class_names)
@@ -713,8 +717,7 @@ def evaluate(config_path,
                 pickle.dump(dt_annos, f)
 
 
-def export_onnx(net, example, class_names, batch_image_shape,
-                center_limit_range=None, lidar_input=False, global_set=None):
+def export_onnx(net, example):
 
     pillar_x = example[0][:,:,0].unsqueeze(0).unsqueeze(0)
     pillar_y = example[0][:,:,1].unsqueeze(0).unsqueeze(0)
@@ -726,8 +729,8 @@ def export_onnx(net, example, class_names, batch_image_shape,
     # assuming xyres_16.proto
     coors_x = example[2][:, 3].float()
     coors_y = example[2][:, 2].float()
-    x_sub = coors_x.unsqueeze(1) * 0.16 + 0.1
-    y_sub = coors_y.unsqueeze(1) * 0.16 + -39.9
+    x_sub = coors_x.unsqueeze(1) * 0.16 - 22.96
+    y_sub = coors_y.unsqueeze(1) * 0.16 - 22.06
     ones = torch.ones([1, 100],dtype=torch.float32, device=pillar_x.device)
     x_sub_shaped = torch.mm(x_sub, ones).unsqueeze(0).unsqueeze(0)
     y_sub_shaped = torch.mm(y_sub, ones).unsqueeze(0).unsqueeze(0)
@@ -739,6 +742,10 @@ def export_onnx(net, example, class_names, batch_image_shape,
     mask = mask.type_as(pillar_x)
 
     coors = example[2]
+    anchors = example[3]
+    anchors_mask = example[4]
+    anchors_mask = torch.as_tensor(anchors_mask, dtype=torch.uint8, device=pillar_x.device)
+    anchors_mask = anchors_mask.byte()
 
     print(pillar_x.size())
     print(pillar_y.size())
@@ -749,18 +756,22 @@ def export_onnx(net, example, class_names, batch_image_shape,
     print(y_sub_shaped.size())
     print(mask.size())
 
+    print(coors.size())
+    print(anchors.size())
+    print(anchors_mask.size())
+
     input_names = ["pillar_x", "pillar_y", "pillar_z", "pillar_i",
                    "num_points_per_pillar", "x_sub_shaped", "y_sub_shaped", "mask"]
 
     # Wierd Convloution
-    pillar_x = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_y = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_z = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_i = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    num_points_per_pillar = torch.ones([1, 12000], dtype=torch.float32, device=pillar_x.device)
-    x_sub_shaped = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    y_sub_shaped = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
-    mask = torch.ones([1, 1, 12000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_x = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_y = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_z = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_i = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    num_points_per_pillar = torch.ones([1, 10000], dtype=torch.float32, device=pillar_x.device)
+    x_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    y_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    mask = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
 
     # De-Convolution
     # pillar_x = torch.ones([1, 100, 8599, 1],dtype=torch.float32, device=pillar_x.device )
@@ -776,11 +787,13 @@ def export_onnx(net, example, class_names, batch_image_shape,
                 num_points_per_pillar, x_sub_shaped, y_sub_shaped, mask]
 
     print('-------------- network readable visiual --------------')
-    torch.onnx.export(net, example1, "pfe.onnx", verbose=False, input_names=input_names)
+    torch.onnx.export(net.voxel_feature_extractor, example1, "pfe.onnx", verbose=False,
+                      input_names=input_names, output_names=["rpn_input_features"])
     print('pfe.onnx transfer success ...')
 
-    rpn_input = torch.ones([1, 64, 496, 432], dtype=torch.float32, device=pillar_x.device)
-    torch.onnx.export(net.rpn, rpn_input, "rpn.onnx", verbose=False)
+    rpn_input = torch.ones([1, 64, 288, 288], dtype=torch.float32, device=pillar_x.device)
+    torch.onnx.export(net.rpn, rpn_input, "rpn.onnx", verbose=True, input_names=["rpn_input_features"],
+                      output_names=["box", "cls", "dir"])
     print('rpn.onnx transfer success ...')
 
     return 0
@@ -868,9 +881,9 @@ def onnx_model_generate(config_path,
     for example in iter(eval_dataloader):
         example = example_convert_to_torch(example, float_dtype)
         example_tuple = list(example.values())
-        batch_image_shape = example_tuple[8]
-        example_tuple[8] = torch.from_numpy(example_tuple[8])
-        example_tuple[9] = torch.from_numpy(example_tuple[9])
+        # batch_image_shape = example_tuple[8]
+        example_tuple[5] = torch.from_numpy(example_tuple[5])
+        # example_tuple[9] = torch.from_numpy(example_tuple[9])
 
         dt_annos = export_onnx(
             net, example_tuple, class_names, batch_image_shape, center_limit_range,
