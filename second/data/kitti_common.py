@@ -230,6 +230,7 @@ def get_class_to_label_map():
         'Others_moving': 4,
         'Others_stationary': 5,
         'Vehicle': 6,
+        'Unknown': 7,
     }
     return class_to_label
 

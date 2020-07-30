@@ -37,7 +37,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'others', 'others_moving', 'others_stationary', 'vehicle']
+    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'others', 'others_moving', 'others_stationary', 'vehicle', 'unknown']
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -750,6 +750,7 @@ def get_official_eval_result_v1(gt_annos, dt_annos, current_class):
         2: 'Cyclist',
         3: 'Van',
         4: 'Person_sitting',
+        5: 'Unknown',
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if isinstance(current_class, str):
@@ -804,6 +805,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
         4: 'Others_moving',
         5: 'Others_stationary',
         6: 'Car',
+        7: 'Unknown'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
@@ -861,6 +863,7 @@ def get_coco_eval_result(gt_annos, dt_annos, current_classes):
         4: 'Others_moving',
         5: 'Others_stationary',
         6: 'Vehicle',
+        7: 'Unknown',
     }
     class_to_range = {
         0: [0.5, 1.0, 0.05],
