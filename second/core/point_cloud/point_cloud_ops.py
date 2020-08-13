@@ -14,14 +14,17 @@ def _points_to_voxel_reverse_kernel(points,
                                     coors,
                                     max_points=35,
                                     max_voxels=20000):
+
     # put all computations to one loop.
     # we shouldn't create large array in main jit code, otherwise
     # reduce performance
     N = points.shape[0]
+    # points.detach().cpu().numpy().tofile("test1.bin")
     # ndim = points.shape[1] - 1
     ndim = 3
     ndim_minus_1 = ndim - 1
     grid_size = (coors_range[3:] - coors_range[:3]) / voxel_size
+    # print("grid_size", grid_size)
     # np.round(grid_size)
     # grid_size = np.round(grid_size).astype(np.int64)(np.int32)
     grid_size = np.round(grid_size, 0, grid_size).astype(np.int32)
@@ -31,14 +34,19 @@ def _points_to_voxel_reverse_kernel(points,
     for i in range(N):
         failed = False
         for j in range(ndim):
+            # print("points[%s,%s]", i, j, points[i, j])
+            # print("coors_range", coors_range[j])
+            # print("voxel_size", voxel_size[j])
             c = np.floor((points[i, j] - coors_range[j]) / voxel_size[j])
             if c < 0 or c >= grid_size[j]:
                 failed = True
                 break
             coor[ndim_minus_1 - j] = c
+            # print("coor", c)
         if failed:
             continue
         voxelidx = coor_to_voxelidx[coor[0], coor[1], coor[2]]
+        # print(voxelidx)
         if voxelidx == -1:
             voxelidx = voxel_num
             if voxel_num >= max_voxels:

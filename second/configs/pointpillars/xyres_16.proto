@@ -229,6 +229,7 @@ eval_input_reader: {
   num_workers: 3
   anchor_area_threshold: 1
   remove_environment: false
-  kitti_info_path: "/nfs/nas/datasets/songhongli/pp_baidu/neolix_infos_val.pkl"
-  kitti_root_path: "/nfs/nas/datasets/songhongli/pp_baidu"
+  #kitti_info_path: "/nfs/nas/datasets/songhongli/pp_baidu/neolix_infos_val.pkl"
+  #kitti_root_path: "/nfs/nas/datasets/songhongli/pp_baidu"
+
 }

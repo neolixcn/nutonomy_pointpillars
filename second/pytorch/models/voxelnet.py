@@ -5,6 +5,7 @@ from functools import reduce
 import numpy as np
 # import sparseconvnet as scn
 import torch
+print(torch.__version__)
 from torch import nn
 from torch.nn import functional as F
 
@@ -682,6 +683,8 @@ class VoxelNet(nn.Module):
         y_sub_shaped = example[6]
         mask = example[7]
 
+        # voxel_features = self.voxel_feature_extractor(pillar_x, pillar_y, pillar_z, pillar_i,
+        #                                               num_points, x_sub_shaped, y_sub_shaped, mask)
         voxel_features = self.voxel_feature_extractor(example[:8])
 
         ###################################################################################
@@ -690,67 +693,79 @@ class VoxelNet(nn.Module):
         voxel_features = voxel_features.squeeze()
         voxel_features = voxel_features.permute(1, 0)
 
+        # with open("pfe_feature.txt", 'w') as f:
+        #     f.write(str(voxel_features.data))
+
         coors = example[8]
         spatial_features = self.middle_feature_extractor(voxel_features, coors)
+        # print("spatial_features", spatial_features.size())
         # spatial_features input size is : [1, 64, 496, 432]
         preds_dict = self.rpn(spatial_features)
+        # with open("rpn_box.txt", 'w') as f1:
+        #     f1.write(str(preds_dict[0].data))
+        # with open("rpn_cls.txt", 'w') as f2:
+        #     f2.write(str(preds_dict[1].data))
+        # with open("rpn_dir.txt", 'w') as f3:
+        #     f3.write(str(preds_dict[2].data))
         # return preds_dict
         box_preds = preds_dict[0]
         cls_preds = preds_dict[1]
-        if self.training:
-            #labels = example['labels']
-            #reg_targets = example['reg_targets']
-            anchors = example[9]
-            labels = example[10]
-            reg_targets = example[11]
-            batch_size_dev = anchors.shape[0]
-
-            cls_weights, reg_weights, cared = prepare_loss_weights(
-                labels,
-                pos_cls_weight=self._pos_cls_weight,
-                neg_cls_weight=self._neg_cls_weight,
-                loss_norm_type=self._loss_norm_type,
-                dtype=pillar_x.dtype) # voxels.dtype
-            cls_targets = labels * cared.type_as(labels)
-            cls_targets = cls_targets.unsqueeze(-1)
-
-            loc_loss, cls_loss = create_loss(
-                self._loc_loss_ftor,
-                self._cls_loss_ftor,
-                box_preds=box_preds,
-                cls_preds=cls_preds,
-                cls_targets=cls_targets,
-                cls_weights=cls_weights,
-                reg_targets=reg_targets,
-                reg_weights=reg_weights,
-                num_class=self._num_class,
-                encode_rad_error_by_sin=self._encode_rad_error_by_sin,
-                encode_background_as_zeros=self._encode_background_as_zeros,
-                box_code_size=self._box_coder.code_size,
-            )
-            loc_loss_reduced = loc_loss.sum() / batch_size_dev
-            loc_loss_reduced *= self._loc_loss_weight
-            cls_pos_loss, cls_neg_loss = _get_pos_neg_loss(cls_loss, labels)
-            cls_pos_loss /= self._pos_cls_weight
-            cls_neg_loss /= self._neg_cls_weight
-            cls_loss_reduced = cls_loss.sum() / batch_size_dev
-            cls_loss_reduced *= self._cls_loss_weight
-            loss = loc_loss_reduced + cls_loss_reduced
-            if self._use_direction_classifier:
-
-                dir_targets = get_direction_target(anchors, reg_targets)
-                dir_logits = preds_dict[2].view(batch_size_dev, -1, 2)
-                weights = (labels > 0).type_as(dir_logits)
-                weights /= torch.clamp(weights.sum(-1, keepdim=True), min=1.0)
-                dir_loss = self._dir_loss_ftor(dir_logits, dir_targets, weights=weights)
-                dir_loss = dir_loss.sum() / batch_size_dev
-                loss += dir_loss * self._direction_loss_weight
-
-            output_tuple = (loss, cls_loss, loc_loss, cls_pos_loss, cls_neg_loss,
-                            cls_preds, dir_loss, cls_loss_reduced, loc_loss_reduced, cared)
-            return output_tuple
-        else:
-            return self.predict(example, preds_dict)
+        # return preds_dict
+        return preds_dict
+        # if self.training:
+        #     #labels = example['labels']
+        #     #reg_targets = example['reg_targets']
+        #     anchors = example[9]
+        #     labels = example[10]
+        #     reg_targets = example[11]
+        #     batch_size_dev = anchors.shape[0]
+        #
+        #     cls_weights, reg_weights, cared = prepare_loss_weights(
+        #         labels,
+        #         pos_cls_weight=self._pos_cls_weight,
+        #         neg_cls_weight=self._neg_cls_weight,
+        #         loss_norm_type=self._loss_norm_type,
+        #         dtype=pillar_x.dtype) # voxels.dtype
+        #     cls_targets = labels * cared.type_as(labels)
+        #     cls_targets = cls_targets.unsqueeze(-1)
+        #
+        #     loc_loss, cls_loss = create_loss(
+        #         self._loc_loss_ftor,
+        #         self._cls_loss_ftor,
+        #         box_preds=box_preds,
+        #         cls_preds=cls_preds,
+        #         cls_targets=cls_targets,
+        #         cls_weights=cls_weights,
+        #         reg_targets=reg_targets,
+        #         reg_weights=reg_weights,
+        #         num_class=self._num_class,
+        #         encode_rad_error_by_sin=self._encode_rad_error_by_sin,
+        #         encode_background_as_zeros=self._encode_background_as_zeros,
+        #         box_code_size=self._box_coder.code_size,
+        #     )
+        #     loc_loss_reduced = loc_loss.sum() / batch_size_dev
+        #     loc_loss_reduced *= self._loc_loss_weight
+        #     cls_pos_loss, cls_neg_loss = _get_pos_neg_loss(cls_loss, labels)
+        #     cls_pos_loss /= self._pos_cls_weight
+        #     cls_neg_loss /= self._neg_cls_weight
+        #     cls_loss_reduced = cls_loss.sum() / batch_size_dev
+        #     cls_loss_reduced *= self._cls_loss_weight
+        #     loss = loc_loss_reduced + cls_loss_reduced
+        #     if self._use_direction_classifier:
+        #
+        #         dir_targets = get_direction_target(anchors, reg_targets)
+        #         dir_logits = preds_dict[2].view(batch_size_dev, -1, 2)
+        #         weights = (labels > 0).type_as(dir_logits)
+        #         weights /= torch.clamp(weights.sum(-1, keepdim=True), min=1.0)
+        #         dir_loss = self._dir_loss_ftor(dir_logits, dir_targets, weights=weights)
+        #         dir_loss = dir_loss.sum() / batch_size_dev
+        #         loss += dir_loss * self._direction_loss_weight
+        #
+        #     output_tuple = (loss, cls_loss, loc_loss, cls_pos_loss, cls_neg_loss,
+        #                     cls_preds, dir_loss, cls_loss_reduced, loc_loss_reduced, cared)
+        #     return output_tuple
+        # else:
+        #     return self.predict(example, preds_dict)
 
     def predict(self, example, preds_dict):
         torch.cuda.synchronize()
@@ -947,21 +962,31 @@ class VoxelNet(nn.Module):
                 # # box_corners_in_image: [N, 8, 2]
                 # minxy = torch.min(box_corners_in_image, dim=1)[0]
                 # maxxy = torch.max(box_corners_in_image, dim=1)[0]
-                # # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
-                # # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
-                # # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
-                # # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
-                # # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
+                # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
+                # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
+                # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
+                # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
+                # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
                 # box_2d_preds = torch.cat([minxy, maxxy], dim=1)
-                #
+
                 # predictions_dict = (box_2d_preds, final_box_preds_camera,
-                #                     final_box_preds, final_scores, label_preds, img_idx)
+                #                     final_box_preds, final_scores, label_preds, pc_idx)
                 predictions_dict = (final_box_preds, final_scores, label_preds, pc_idx)
             else:
                 predictions_dict = (None, None, None, pc_idx)
             # predictions_dicts.append(predictions_dict)
             predictions_dicts += (predictions_dict, )
         self._total_postprocess_time += time.time() - t
+        # print("final_result", predictions_dicts)
+        # content = ""
+        # box = final_box_preds.cpu().detach().numpy()
+        # with open("new_000300.txt", 'w') as f:
+        #     for b in box:
+        #         b = [str(bb) for bb in b]
+        #         content += "Pedestrian 0.00 0 -0.20 712.40 143.00 810.73 307.92 " + b[5] + " " + b[3] + " " + b[4] + " " \
+        #                    + b[0] + " " + b[1] + " " + b[3] + " " + b[-1] + "\n"
+        #     content = content.strip()
+        #     f.write(content)
         return predictions_dicts
 
     @property

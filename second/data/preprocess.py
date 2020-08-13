@@ -130,7 +130,7 @@ def prep_pointcloud(input_dict,
             group_ids = group_ids[selected]
 
         # gt_boxes = box_np_ops.box_camera_to_lidar(gt_boxes, rect, Trv2c)
-        gt_boxes = box_np_ops.box_lidar_to_lidar(gt_boxes)
+        gt_boxes = box_np_ops.box_lidar_to_lidar(gt_boxes)  ## annotate by shl
         if remove_unknown:
             remove_mask = difficulty == -1
             """
@@ -205,14 +205,14 @@ def prep_pointcloud(input_dict,
         gt_classes = np.array(
             [class_names.index(n) + 1 for n in gt_names], dtype=np.int32)
 
-        gt_boxes, points = prep.random_flip(gt_boxes, points)
-        gt_boxes, points = prep.global_rotation(
-            gt_boxes, points, rotation=global_rotation_noise)
-        gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
-                                                  *global_scaling_noise)
-
-        # Global translation
-        gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
+        # gt_boxes, points = prep.random_flip(gt_boxes, points)
+        # gt_boxes, points = prep.global_rotation(
+        #     gt_boxes, points, rotation=global_rotation_noise)
+        # gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
+        #                                           *global_scaling_noise)
+        #
+        # # Global translation
+        # gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
 
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
         mask = prep.filter_gt_box_outside_range(gt_boxes, bv_range)
@@ -313,15 +313,17 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     v_path = pathlib.Path(root_path) / info['velodyne_path']
     v_path = v_path.parent.parent / (
         v_path.parent.stem) / v_path.name
-
-    points = np.fromfile(
-        str(v_path), dtype=np.float64,
-        count=-1).reshape([-1, num_point_features])
+    # print("velodyne_path", v_path)
+    # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
+    # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/002888.bin', count=-1).astype(np.float32).reshape([-1, num_point_features])
+    points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points = np.fromfile("/nfs/nas/datasets/songhongli/shanghai_bin/_1595407753_42089.bin", dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points = np.fromfile('/nfs/nas/datasets/songhongli/pp_baidu/training/new_000300.bin', dtype=np.float64).astype(np.float32).reshape([-1, num_point_features])
     pc_idx = info['pc_idx']
+    # image_idx = info['image_idx']
     # rect = info['calib/R0_rect'].astype(np.float32)
     # Trv2c = info['calib/Tr_velo_to_cam'].astype(np.float32)
     # P2 = info['calib/P2'].astype(np.float32)
-
     input_dict = {
         'points': points,
         # 'rect': rect,

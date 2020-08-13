@@ -5,7 +5,7 @@ model: {
       voxel_size : [0.16, 0.16, 4]
       max_number_of_points_per_voxel : 100
     }
-    num_class: 3
+    num_class: 6
     voxel_feature_extractor: {
       module_class_name: "PillarFeatureNet"
       num_filters: [64]
@@ -60,8 +60,8 @@ model: {
     use_multi_class_nms: false
     nms_pre_max_size: 1000
     nms_post_max_size: 300
-    nms_score_threshold: 0.3#0.05#0.05
-    nms_iou_threshold: 0.5#0.5#0.5
+    nms_score_threshold: 0.25#0.05#0.05
+    nms_iou_threshold: 0.1#0.5#0.5
 
     use_bev: false
     num_point_features: 4
@@ -77,7 +77,7 @@ model: {
         anchor_generator_stride: {
           sizes: [0.54, 0.50, 1.36] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          offsets: [-22.96, -22.96, -0.13] # origin_offset + strides / 2
+          offsets: [-22.96, -22.96, 0.55] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -87,7 +87,27 @@ model: {
         anchor_generator_stride: {
           sizes: [1.18, 2.20, 1.52] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          offsets: [-22.96, -22.96, -0.15] # origin_offset + strides / 2
+          offsets: [-22.96, -22.96, 0.60] # origin_offset + strides / 2
+          rotations: [0, 1.57] # 0, pi/2
+          matched_threshold : 0.5
+          unmatched_threshold : 0.35
+        }
+      }
+      anchor_generators: {
+        anchor_generator_stride: {
+          sizes: [0.54, 0.55, 0.86] # wlh
+          strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
+          offsets: [-22.96, -22.96, 0.47] # origin_offset + strides / 2
+          rotations: [0, 1.57] # 0, pi/2
+          matched_threshold : 0.5
+          unmatched_threshold : 0.35
+        }
+      }
+      anchor_generators: {
+        anchor_generator_stride: {
+          sizes: [0.66, 1.05, 1.00] # wlh
+          strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
+          offsets: [-22.96, -22.96, 0.41] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -97,7 +117,17 @@ model: {
         anchor_generator_stride: {
           sizes: [0.51, 1.23, 1.03] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          offsets: [-22.96, -22.96, -0.13] # origin_offset + strides / 2
+          offsets: [-22.96, -22.96, 0.38] # origin_offset + strides / 2
+          rotations: [0, 1.57] # 0, pi/2
+          matched_threshold : 0.5
+          unmatched_threshold : 0.35
+        }
+      }
+      anchor_generators: {
+        anchor_generator_stride: {
+          sizes: [0.86, 1.08, 2.58] # wlh
+          strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
+          offsets: [-22.96, -22.96, 1.23] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -118,13 +148,13 @@ model: {
 
 train_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_train.tfrecord"
-  class_names: ["Pedestrian", "Car", "Cyclist"]
+  class_names: ["Pedestrian", "Car", "Others", "Others_moving", "Cyclist", "Others_stationary"]
   max_num_epochs : 160
   batch_size: 1
   prefetch_size : 25
   max_number_of_voxels: 12000
   shuffle_points: true
-  num_workers: 0
+  num_workers: 2
   groundtruth_localization_noise_std: [0.25, 0.25, 0.25]
   groundtruth_rotation_uniform_noise: [-0.15707963267, 0.15707963267]
   global_rotation_uniform_noise: [-0.78539816, 0.78539816]
@@ -169,7 +199,7 @@ train_config: {
   }
   inter_op_parallelism_threads: 4
   intra_op_parallelism_threads: 4
-  steps: 800000 # 1856 steps per epoch * 160 epochs
+  steps: 1280000 # 1856 steps per epoch * 160 epochs
   steps_per_eval: 7000000 # 1856 steps per epoch * 5 epochs
   save_checkpoints_secs : 3600 # half hour
   save_summary_steps : 50
@@ -180,13 +210,13 @@ train_config: {
 
 eval_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_val.tfrecord"
-  class_names: ["Pedestrian", "Car", "Cyclist"]
+  class_names: ["Pedestrian", "Car", "Others", "Others_moving", "Cyclist", "Others_stationary"]
   batch_size: 1
   max_num_epochs : 160
   prefetch_size : 25
   max_number_of_voxels: 10000
   shuffle_points: false
-  num_workers: 0
+  num_workers: 3
   anchor_area_threshold: 1
   remove_environment: false
   kitti_info_path: "/nfs/nas/datasets/songhongli/pp_baidu/neolix_infos_val.pkl"
