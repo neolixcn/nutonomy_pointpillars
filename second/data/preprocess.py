@@ -1,6 +1,7 @@
 import pathlib
 import pickle
 import time
+import os
 from collections import defaultdict
 
 import numpy as np
@@ -304,7 +305,7 @@ def prep_pointcloud(input_dict,
         })
     return example
 
-
+# data_id = -1
 def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     """read data from KITTI-format infos, then call prep function.
     """
@@ -315,7 +316,16 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
         v_path.parent.stem) / v_path.name
     # print("velodyne_path", v_path)
     # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
-    # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/002888.bin', count=-1).astype(np.float32).reshape([-1, num_point_features])
+
+    # jiashan_rootpath = "/home/songhongli/jiashan2_bin/"
+    # fname_ls = os.listdir(jiashan_rootpath)
+    # fname_ls.sort()
+    # global data_id
+    # data_id += 1
+    # if data_id == 501:
+    #     assert False
+    # v_path = jiashan_rootpath + fname_ls[data_id]
+
     points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, num_point_features])
     # points = np.fromfile("/nfs/nas/datasets/songhongli/shanghai_bin/_1595407753_42089.bin", dtype=np.float32, count=-1).reshape([-1, num_point_features])
     # points = np.fromfile('/nfs/nas/datasets/songhongli/pp_baidu/training/new_000300.bin', dtype=np.float64).astype(np.float32).reshape([-1, num_point_features])
