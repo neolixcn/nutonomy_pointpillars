@@ -401,7 +401,7 @@ class KittiPointCloudView(KittiGLViewWidget):
                 grid_size) > 1
         print(np.sum(anchors_mask), anchors_mask.shape)
         class_names = [
-            'Car', "Pedestrian", "Cyclist", 'Others', 'Others_moving', "Others_stationary", 'Vehicle'
+            'Vehicle', "Pedestrian", "Cyclist", 'Others', 'Others_moving', "Others_stationary", 'Vehicle'
         ]
         gt_classes = np.array(
             [class_names.index(n) + 1 for n in gt_names], dtype=np.int32)
@@ -1357,7 +1357,7 @@ class KittiViewer(QMainWindow):
     @staticmethod
     def get_simpify_labels(labels):
         label_map = {
-            "Car": "V",
+            "Vehicle": "V",
             "Pedestrian": "P",
             "Cyclist": "C",
             "Others": "O",
@@ -1366,7 +1366,7 @@ class KittiViewer(QMainWindow):
             "Vehicle": "V"
         }
         label_count = {
-            "Car": 0,
+            "Vehicle": 0,
             "Pedestrian": 0,
             "Cyclist": 0,
             "Others": 0,

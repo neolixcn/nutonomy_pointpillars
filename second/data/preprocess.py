@@ -278,13 +278,15 @@ def prep_pointcloud(input_dict,
         dense_voxel_map = dense_voxel_map.cumsum(1)
         anchors_area = box_np_ops.fused_get_anchors_area(
             dense_voxel_map, anchors_bv, voxel_size, pc_range, grid_size)
+        # print("anchor_area_threshold", anchor_area_threshold, '\n')
+        # print("anchor_area", anchors_area.shape, '\n', anchors_area, '\n')
         anchors_mask = anchors_area > anchor_area_threshold
         # example['anchors_mask'] = anchors_mask.astype(np.uint8)
         example['anchors_mask'] = anchors_mask
     if generate_bev:
         bev_vxsize = voxel_size.copy()
         bev_vxsize[:2] /= 2
-        bev_vxsize[2] *= 2
+        bev_vxsize[2] *= 21
         bev_map = points_to_bev(points, bev_vxsize, pc_range,
                                 without_reflectivity)
         example["bev_map"] = bev_map
@@ -305,7 +307,7 @@ def prep_pointcloud(input_dict,
         })
     return example
 
-# data_id = -1
+data_id = -1
 def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     """read data from KITTI-format infos, then call prep function.
     """
@@ -316,17 +318,20 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
         v_path.parent.stem) / v_path.name
     # print("velodyne_path", v_path)
     # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
-
-    # jiashan_rootpath = "/home/songhongli/jiashan2_bin/"
+    # jiashan_rootpath = "/nfs/nas/datasets/songhongli/neolix_shanghai_1924/training/velodyne/"
+    # jiashan_rootpath = "/home/songhongli/record_all_lidar_test_bins/"
     # fname_ls = os.listdir(jiashan_rootpath)
     # fname_ls.sort()
     # global data_id
     # data_id += 1
-    # if data_id == 501:
+    # if data_id == 500:
     #     assert False
     # v_path = jiashan_rootpath + fname_ls[data_id]
-
+    # print(("v_path", v_path))
     points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points[:, 3] = points[:, 3] / 255
+    points[:, 3] = 0
+    # points = np.fromfile('/home/songhongli/000000.bin', dtype=np.float32, count=-1).reshape([-1, num_point_features])
     # points = np.fromfile("/nfs/nas/datasets/songhongli/shanghai_bin/_1595407753_42089.bin", dtype=np.float32, count=-1).reshape([-1, num_point_features])
     # points = np.fromfile('/nfs/nas/datasets/songhongli/pp_baidu/training/new_000300.bin', dtype=np.float64).astype(np.float32).reshape([-1, num_point_features])
     pc_idx = info['pc_idx']

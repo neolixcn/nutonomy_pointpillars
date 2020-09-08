@@ -53,6 +53,6 @@ def split_datasets(ids_p, num):
 
 
 if __name__ == '__main__':
-    ids_path = "/data/data/dataset/shanghai_to_annotate/000000_000411/txt/"
-    num = 412
+    ids_path = "/nfs/nas/datasets/songhongli/neolix_shanghai_1924/training/label_2/"
+    num = 1924
     split_datasets(ids_path, num)

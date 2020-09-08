@@ -11,6 +11,7 @@ from pathlib import Path
 import fire
 import numpy as np
 import torch
+import torch.nn as nn
 import os
 print(torch.__version__)
 print(os.environ['PYTHONPATH'])
@@ -153,30 +154,49 @@ def train(config_path,
     center_limit_range = model_cfg.post_center_limit_range
     # net = second_builder.build(model_cfg, voxel_generator, target_assigner)
     net = second_builder.build(model_cfg, voxel_generator, target_assigner, input_cfg.batch_size)
+    # print("Let's use", torch.cuda.device_count(), "GPUs!")
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+    # net = nn.DataParallel(net)
     net.cuda()
     # net_train = torch.nn.DataParallel(net).cuda()
-    print("num_trainable parameters:", len(list(net.parameters())))
     # for n, p in net.named_parameters():
     #     print(n, p.shape)
     ######################
     # Build Optimizer
     ######################
     # we need global_step to create lr_scheduler, so restore net first.
-    pretrained_dict = torch.load("/nfs/nas/model/songhongli/neolix_3cls/voxelnet-419516.tckpt")
-    model_dict = net.state_dict()
-    pretrained_dict = {k : v for k, v in pretrained_dict.items() if k in model_dict}
-    model_dict.update(pretrained_dict)
-    model_dict['global_step'] = torch.Tensor([0]).to(pretrained_dict['global_step'].device)
-    net.load_state_dict(model_dict)
+    #pretrained_dict = torch.load("/nfs/nas/model/songhongli/neolix_3cls/voxelnet-419516.tckpt")
+    # pretrained_dict = torch.load("/nfs/nas/model/songhongli/neolix_shanghai_part1_init_net/voxelnet-1119644.tckpt")
+    # model_dict = net.state_dict()
+    # print(model_dict.items())
+    # pretrained_dict = {k : v for k, v in pretrained_dict.items() if k in model_dict}
+    # model_dict.update(pretrained_dict)
+    # model_dict['global_step'] = torch.Tensor([0]).to(pretrained_dict['global_step'].device)
+    # net.load_state_dict(model_dict)
+    # for param in net.parameters():
+    #     param.requires_grad = False
+    # for param in net.rpn.conv_box.parameters():
+    #     param.requires_grad = True
+    # for param in net.rpn.conv_cls.parameters():
+    #     param.requires_grad = True
+    # for param in net.rpn.conv_dir_cls.parameters():
+    #     param.requires_grad = True
+    # for i in net.named_parameters():
+    #     print(i)
+    torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
+    # torchplus.train.try_restore_latest_checkpoints_multi_gpus(model_dir, [net.module])
 
-    # torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
     gstep = net.get_global_step() - 1
+    # gstep = net.module.get_global_step() - 1
+
     optimizer_cfg = train_cfg.optimizer
     if train_cfg.enable_mixed_precision:
         net.half()
         net.metrics_to_float()
         net.convert_norm_to_float(net)
+
     optimizer = optimizer_builder.build(optimizer_cfg, net.parameters())
+    # optimizer = optimizer_builder.build(optimizer_cfg, filter(lambda p: p.requires_grad, net.parameters()))
     if train_cfg.enable_mixed_precision:
         loss_scale = train_cfg.loss_scale_factor
         mixed_optimizer = torchplus.train.MixedPrecisionWrapper(optimizer, loss_scale)
@@ -184,6 +204,8 @@ def train(config_path,
         mixed_optimizer = optimizer
     # must restore optimizer AFTER using MixedPrecisionWrapper
     torchplus.train.try_restore_latest_checkpoints(model_dir, [mixed_optimizer])  # restore pretrained model
+    # torchplus.train.try_restore_latest_checkpoints_multi_gpus(model_dir, [mixed_optimizer])  # restore pretrained model
+
     # gstep = -1   # restore pretrained model
     lr_scheduler = lr_scheduler_builder.build(optimizer_cfg, optimizer, gstep)
     if train_cfg.enable_mixed_precision:
@@ -241,6 +263,7 @@ def train(config_path,
 
     total_step_elapsed = 0
     remain_steps = train_cfg.steps - net.get_global_step()
+    # remain_steps = train_cfg.steps - net.module.get_global_step()
     t = time.time()
     ckpt_start_time = t
 
@@ -417,6 +440,7 @@ def train(config_path,
             torchplus.train.save_models(eval_checkpoint_dir, [net, optimizer], net.get_global_step(), max_to_keep=100)
 
     except Exception as e:
+        # torchplus.train.save_models(model_dir, [net.module, optimizer], net.module.get_global_step())
         torchplus.train.save_models(model_dir, [net, optimizer], net.get_global_step())
         logf.close()
         raise e
@@ -532,6 +556,7 @@ def _predict_kitti_to_file(net,
         with open(result_file, 'w') as f:
             f.write(result_str)
 
+dataid = -1
 
 def predict_kitti_to_anno(net,
                           example,
@@ -645,8 +670,10 @@ def predict_kitti_to_anno(net,
 
                 num_example += 1
             content = content.strip()
+            global dataid
+            dataid += 1
             # print("content", content)
-            # with open("./pre_test/%06d.txt" % pc_idx, 'w') as f:
+            # with open("./pre_test/%06d.txt" % dataid, 'w') as f:
             #     f.write(content)
             if num_example != 0:
                 anno = {n: np.stack(v) for n, v in anno.items()}
@@ -725,9 +752,9 @@ def evaluate(config_path,
     # gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
     # result_path_step = result_path / f"step_{net.get_global_step()}"
     # result_path_step.mkdir(parents=True, exist_ok=True)
-    # # with open("/data/models/songhongli/test_models/test2/eval_results/step_1091285/" + "result.pkl", 'rb') as f:
-    # #     dt_annos = pickle.load(f)
-    # with open("/data/models/songhongli/neolix_3cls/eval_results/step_419516/" + "result.pkl", 'rb') as f:
+    # with open("/data/models/songhongli/test_models/test2/eval_results/step_1091285/" + "result.pkl", 'rb') as f:
+    #     dt_annos = pickle.load(f)
+    # with open("/nfs/nas/model/songhongli/neolix_shanghai_1924_no_intensity/eval_results/step_123040/" + "result.pkl", 'rb') as f:
     #     dt_annos = pickle.load(f)
     # result = get_official_eval_result(gt_annos, dt_annos, class_names)
     # ##########################################

@@ -72,10 +72,12 @@ def create_kitti_info_file(data_path,
                            save_path=None,
                            create_trainval=False,
                            relative_path=True):
-    train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_second.txt")
-    val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_second.txt")
-    trainval_img_ids = _read_imageset_file("./data/ImageSets/trainval_ids_second.txt")
-    test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
+    # train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_second.txt")
+    # val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_second.txt")
+    # trainval_img_ids = _read_imageset_file("./data/ImageSets/trainval_ids_second.txt")
+    # test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
+    train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_shanghaipuruan.txt")
+    val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_shanghaipuruan.txt")
 
     print("Generate info. this may take several minutes.")
     if save_path is None:
@@ -92,7 +94,7 @@ def create_kitti_info_file(data_path,
     # f = open(save_path / 'neolix_infos_train.pkl', 'rb')
     # kitti_infos_train = pickle.load(f)
     _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
-    filename = save_path / 'ppsecond4cls_infos_train.pkl'
+    filename = save_path / 'shanghaipuruan_infos_train.pkl'
 
     # filename = save_path / 'neolix_kitti16_infos_train.pkl'
     print(f"Kitti info train file is saved to {filename}")
@@ -107,7 +109,7 @@ def create_kitti_info_file(data_path,
         relative_path=relative_path)
     _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
     # filename = save_path / 'neolix_kitti16_infos_val.pkl'
-    filename = save_path / 'ppsecond4cls_infos_val.pkl'
+    filename = save_path / 'shanghaipuruan_infos_val.pkl'
 
     print(f"Kitti info val file is saved to {filename}")
     with open(filename, 'wb') as f:
@@ -127,7 +129,7 @@ def create_kitti_info_file(data_path,
             pickle.dump(kitti_infos_trainval, f)
     """
     # filename = save_path / 'neolix_kitti16_infos_trainval.pkl'
-    filename = save_path / 'ppsecond4cls_infos_trainval.pkl'
+    filename = save_path / 'shanghaipuruan_infos_trainval.pkl'
 
     print(f"Kitti info trainval file is saved to {filename}")
     with open(filename, 'wb') as f:
@@ -320,3 +322,91 @@ def create_groundtruth_database(data_path,
 
 if __name__ == '__main__':
     fire.Fire()
+
+
+
+#  ppbaidusecond
+#     anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.53, 0.51, 1.40]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.11]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.52, 3.49, 1.74]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.09]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.68, 1.49, 1.40]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.08]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.47, 0.46, 0.92]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, 0.19]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+#
+#
+
+# shanghai_part1
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.69, 0.69, 1.78]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.17]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.91, 4.58, 1.67]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.17]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.6
+#         unmatched_threshold: 0.45
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.85, 1.94, 1.68]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.25]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.14, 1.08, 0.97]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.20]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }

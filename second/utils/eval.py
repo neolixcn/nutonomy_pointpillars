@@ -4,6 +4,7 @@ import time
 import numba
 import numpy as np
 
+
 from second.core.non_max_suppression.nms_gpu import rotate_iou_gpu_eval
 
 def get_mAP(prec):
@@ -36,7 +37,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'unknown', 'van', 'person_sitting', 'vehicle', 'tractor', 'trailer']
+    CLASS_NAMES = ['pedestrian', 'vehicle', 'cyclist', 'unknown', 'Bicycle_no_person', 'Bicycles', 'van', 'person_sitting', 'car', 'tractor', 'trailer']
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -191,6 +192,8 @@ def compute_statistics_jit(overlaps,
     gt_alphas = gt_datas[:, 4]
     dt_bboxes = dt_datas[:, :4]
     # gt_bboxes = gt_datas[:, :4]
+    dt_true = []
+    pre_score = []
 
     assigned_detection = [False] * det_size
     ignored_threshold = [False] * det_size
@@ -249,6 +252,8 @@ def compute_statistics_jit(overlaps,
         elif valid_detection != NO_DETECTION:
             # only a tp add a threshold.
             tp += 1
+            dt_true.append(1)
+            pre_score.append(dt_scores[det_idx])
             # thresholds.append(dt_scores[det_idx])
             thresholds[thresh_idx] = dt_scores[det_idx]
             thresh_idx += 1
@@ -263,6 +268,8 @@ def compute_statistics_jit(overlaps,
             if (not (assigned_detection[i] or ignored_det[i] == -1
                      or ignored_det[i] == 1 or ignored_threshold[i])):
                 fp += 1
+                dt_true.append(0)
+                pre_score.append(dt_scores[i])
         nstuff = 0
         if metric == 0:
             overlaps_dt_dc = image_box_overlap(dt_bboxes, dc_bboxes, 0)
@@ -290,7 +297,7 @@ def compute_statistics_jit(overlaps,
                 similarity = np.sum(tmp)
             else:
                 similarity = -1
-    return tp, fp, fn, similarity, thresholds[:thresh_idx]
+    return tp, fp, fn, similarity, thresholds[:thresh_idx], dt_true, pre_score
 
 
 def get_split_parts(num, num_part):
@@ -330,7 +337,7 @@ def fused_compute_statistics(overlaps,
             ignored_gt = ignored_gts[gt_num:gt_num + gt_nums[i]]
             ignored_det = ignored_dets[dt_num:dt_num + dt_nums[i]]
             dontcare = dontcares[dc_num:dc_num + dc_nums[i]]
-            tp, fp, fn, similarity, _ = compute_statistics_jit(
+            tp, fp, fn, similarity, _, _, _ = compute_statistics_jit(
                 overlap,
                 gt_data,
                 dt_data,
@@ -541,6 +548,7 @@ def eval_class(gt_annos,
     precision = np.zeros([N_SAMPLE_PTS])
     recall = np.zeros([N_SAMPLE_PTS])
     aos = np.zeros([N_SAMPLE_PTS])
+    print("thresholds", len(thresholds))
     for i in range(len(thresholds)):
         recall[i] = pr[i, 0] / (pr[i, 0] + pr[i, 2])
         precision[i] = pr[i, 0] / (pr[i, 0] + pr[i, 1])
@@ -604,6 +612,11 @@ def eval_class_v3(gt_annos,
              dontcares, total_dc_num, total_num_valid_gt) = rets
             for k, min_overlap in enumerate(min_overlaps[:, metric, m]):
                 thresholdss = []
+                tps = []
+                fps = []
+                fns = []
+                dt_trues = []
+                dt_scoress = []
                 for i in range(len(gt_annos)):
                     rets = compute_statistics_jit(
                         overlaps[i],
@@ -615,10 +628,29 @@ def eval_class_v3(gt_annos,
                         metric,
                         min_overlap=min_overlap,
                         thresh=0.0,
-                        compute_fp=False)
-                    tp, fp, fn, similarity, thresholds = rets
+                        compute_fp=True)
+                    tp, fp, fn, similarity, thresholds, dt_true, dt_scores = rets
+                    tps.append(tp)
+                    fps.append(fp)
+                    fns.append(fn)
                     thresholdss += thresholds.tolist()
+                    dt_trues += dt_true
+                    dt_scoress += dt_scores
                 thresholdss = np.array(thresholdss)
+                tps = np.array(tps)
+                fps = np.array(fps)
+                fns = np.array(fns)
+                dt_trues = np.array(dt_trues)
+                dt_scoress = np.array(dt_scoress)
+                if l == 0:
+                    np.save("%d.%d.%d_true" % (m, l, k), dt_trues)
+                    np.save("%d.%d.%d_score" % (m, l, k), dt_scoress)
+                print("m:", m, " l:", l, " k:", k)
+                print("tps.sum()", tps.sum())
+                print("fps.sum()", fps.sum())
+                print("trues.sum()", dt_trues.sum())
+                print("recall", tps.sum() / (tps.sum() + fns.sum()))
+                print("precision", tps.sum() / (tps.sum() + fps.sum()))
                 thresholds = get_thresholds(thresholdss, total_num_valid_gt)
                 thresholds = np.array(thresholds)
                 pr = np.zeros([len(thresholds), 4])
@@ -665,6 +697,8 @@ def eval_class_v3(gt_annos,
             "recall": recall,
             "precision": precision,
             "orientation": aos,}
+    # print("recall", recall.shape)
+    # print("precision", precision.shape)
     return ret_dict
 
 
@@ -718,6 +752,7 @@ def do_eval_v2(gt_annos,
     mAP_bev = get_mAP_v2(ret["precision"])
     ret = eval_class_v3(gt_annos, dt_annos, current_classes, difficultys, 2,
                         min_overlaps)
+
     mAP_3d = get_mAP_v2(ret["precision"])
     return mAP_bbox, mAP_bev, mAP_3d, mAP_aos
 
@@ -750,18 +785,19 @@ def print_str(value, *arg, sstream=None):
 
 
 def get_official_eval_result_v1(gt_annos, dt_annos, current_class):
-    mAP_0_7 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5], [0.7, 0.5, 0.5, 0.7, 0.5],
-                        [0.7, 0.5, 0.5, 0.7, 0.5]])
-    mAP_0_5 = np.array([[0.7, 0.5, 0.5, 0.7,
-                         0.5], [0.5, 0.25, 0.25, 0.5, 0.25],
-                        [0.5, 0.25, 0.25, 0.5, 0.25]])
+    mAP_0_7 = np.array([[0.5, 0.7, 0.5, 0.5, 0.5], [0.5, 0.7, 0.5, 0.5, 0.5],
+                        [0.5, 0.7, 0.5, 0.5, 0.5]])
+    mAP_0_5 = np.array([[0.5, 0.7, 0.5, 0.5,
+                         0.5], [0.25, 0.5, 0.25, 0.25, 0.25],
+                        [0.25, 0.5, 0.25, 0.25, 0.25]])
     mAP_list = [mAP_0_7, mAP_0_5]
     class_to_name = {
-        0: 'Car',
-        1: 'Pedestrian',
+        0: 'Pedestrian',
+        1: 'Vehicle',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Person_sitting',
+        4: 'Bicycle_no_person',
+        5: 'Bicycles'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if isinstance(current_class, str):
@@ -807,23 +843,21 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
     #overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5, 0.5],
     #                        [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25],
     #                        [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25]])
-    overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
-                            [0.7, 0.5, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
-                            [0.7, 0.5, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5]])
-    overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-                            [0.5, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25],
-                            [0.5, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25]])
+    overlap_0_7 = np.array([[0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
+                            [0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
+                            [0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5]])
+    overlap_0_5 = np.array([[0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5],
+                            [0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25],
+                            [0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25]])
 
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
     class_to_name = {
-        0: 'Car',
-        1: 'Pedestrian',
+        0: 'Pedestrian',
+        1: 'Vehicle',
         2: 'Cyclist',
         3: 'Unknown',
-        8: 'Van',
-        4: 'Person_sitting',
-        6: 'tractor',
-        7: 'trailer',
+        4: 'Bicycle_no_person',
+        5: 'Bicycles'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
@@ -874,13 +908,12 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
 
 def get_coco_eval_result(gt_annos, dt_annos, current_classes):
     class_to_name = {
-        0: 'Car',
-        1: 'Pedestrian',
+        0: 'Pedestrian',
+        1: 'Vehicle',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Person_sitting',
-        6: 'tractor',
-        7: 'trailer',
+        4: 'Bicycle_no_person',
+        5: 'Bicycles'
     }
     class_to_range = {
         0: [0.5, 1.0, 0.05],

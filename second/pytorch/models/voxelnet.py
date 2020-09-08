@@ -467,6 +467,8 @@ class RPN(nn.Module):
         x = torch.cat([up1, up2, up3], dim=1)
         box_preds = self.conv_box(x)
         cls_preds = self.conv_cls(x)
+        # print("rpn_box.shape", box_preds.shape)
+        # print("rpn_cls.shape", cls_preds.shape)
         # [N, C, y(H), x(W)]
         box_preds = box_preds.permute(0, 2, 3, 1).contiguous()
         cls_preds = cls_preds.permute(0, 2, 3, 1).contiguous()
@@ -597,7 +599,7 @@ class VoxelNet(nn.Module):
             num_filters=vfe_num_filters,
             with_distance=with_distance)
 
-        print("middle_class_name", middle_class_name)
+        # print("middle_class_name", middle_class_name)
         if middle_class_name == "PointPillarsScatter":
             self.middle_feature_extractor = PointPillarsScatter(output_shape=output_shape,
                                                                 num_input_features=vfe_num_filters[-1],
@@ -678,7 +680,6 @@ class VoxelNet(nn.Module):
         pillar_y = example[1]
         pillar_z = example[2]
         pillar_i = example[3]
-        print("intensity", pillar_i)
         num_points = example[4]
         x_sub_shaped = example[5]
         y_sub_shaped = example[6]
@@ -686,8 +687,7 @@ class VoxelNet(nn.Module):
 
         # voxel_features = self.voxel_feature_extractor(pillar_x, pillar_y, pillar_z, pillar_i,
         #                                               num_points, x_sub_shaped, y_sub_shaped, mask)
-        # from IPython import embed
-        # embed()
+
         voxel_features = self.voxel_feature_extractor(example[:8])
 
         ###################################################################################
@@ -700,6 +700,8 @@ class VoxelNet(nn.Module):
         #     f.write(str(voxel_features.data))
 
         coors = example[8]
+        # from IPython import embed
+        # embed()
         spatial_features = self.middle_feature_extractor(voxel_features, coors)
         # print("spatial_features", spatial_features.size())
         # spatial_features input size is : [1, 64, 496, 432]
@@ -713,6 +715,8 @@ class VoxelNet(nn.Module):
         # return preds_dict
         box_preds = preds_dict[0]
         cls_preds = preds_dict[1]
+        # print("box_preds.shape", box_preds.shape)
+        # print("cls_preds.shape", cls_preds.shape)
         # return preds_dict
         # return preds_dict
         if self.training:
@@ -817,7 +821,11 @@ class VoxelNet(nn.Module):
                 batch_pc_idx, batch_anchors_mask
         ):
             if a_mask is not None:
+                # print("####################")
+                # print(a_mask)
+                # print("box_preds", box_preds.shape)
                 box_preds = box_preds[a_mask]
+                # print("after_box_shape", box_preds.shape)
                 cls_preds = cls_preds[a_mask]
             if self._use_direction_classifier:
                 if a_mask is not None:
@@ -980,16 +988,6 @@ class VoxelNet(nn.Module):
             # predictions_dicts.append(predictions_dict)
             predictions_dicts += (predictions_dict, )
         self._total_postprocess_time += time.time() - t
-        # print("final_result", predictions_dicts)
-        # content = ""
-        # box = final_box_preds.cpu().detach().numpy()
-        # with open("new_000300.txt", 'w') as f:
-        #     for b in box:
-        #         b = [str(bb) for bb in b]
-        #         content += "Pedestrian 0.00 0 -0.20 712.40 143.00 810.73 307.92 " + b[5] + " " + b[3] + " " + b[4] + " " \
-        #                    + b[0] + " " + b[1] + " " + b[3] + " " + b[-1] + "\n"
-        #     content = content.strip()
-        #     f.write(content)
         return predictions_dicts
 
     @property

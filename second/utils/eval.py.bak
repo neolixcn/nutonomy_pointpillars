@@ -37,7 +37,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['car', 'pedestrian', 'cyclist', 'unknown', 'others_moving', 'others_stationary', 'vehicle', 'others']
+    CLASS_NAMES = ['vehicle', 'pedestrian', 'cyclist', 'unknown', 'others_moving', 'others_stationary', 'car', 'others']
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -282,6 +282,7 @@ def compute_statistics_jit(overlaps,
                 similarity = np.sum(tmp)
             else:
                 similarity = -1
+
     return tp, fp, fn, similarity, thresholds[:thresh_idx]
 
 
@@ -316,7 +317,7 @@ def fused_compute_statistics(overlaps,
         for t, thresh in enumerate(thresholds):
             overlap = overlaps[dt_num:dt_num + dt_nums[i], gt_num:
                                gt_num + gt_nums[i]]
-
+fp
             gt_data = gt_datas[gt_num:gt_num + gt_nums[i]]
             dt_data = dt_datas[dt_num:dt_num + dt_nums[i]]
             ignored_gt = ignored_gts[gt_num:gt_num + gt_nums[i]]

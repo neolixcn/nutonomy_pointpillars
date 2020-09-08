@@ -1,9 +1,9 @@
 model: {
   second: {
     voxel_generator {
-      #point_cloud_range : [0, -19.84, -2.5, 47.36, 19.84, 0.5]
-      point_cloud_range : [-23.04, -23.04, -1, 23.04, 23.04, 3]
-      voxel_size : [0.16, 0.16, 4]
+      point_cloud_range : [0, -19.84, -2.5, 47.36, 19.84, 0.5]
+      #point_cloud_range : [-23.04, -23.04, -1, 23.04, 23.04, 3]
+      voxel_size : [0.16, 0.16, 3]
       max_number_of_points_per_voxel : 100
     }
     num_class: 4
@@ -56,13 +56,13 @@ model: {
 
     loss_norm_type: NormByNumPositives
     # Postprocess
-    #post_center_limit_range: [0, -19.84, -2.5, 47.36, 19.84, 0.5]
-    post_center_limit_range: [-23.04, -23.04, -1, 23.04, 23.04, 3]
+    post_center_limit_range: [0, -19.84, -2.5, 47.36, 19.84, 0.5]
+    #post_center_limit_range: [-23.04, -23.04, -1, 23.04, 23.04, 3]
     use_rotate_nms: false
     use_multi_class_nms: false
     nms_pre_max_size: 1000
     nms_post_max_size: 300
-    nms_score_threshold: 0.1#0.05#0.05
+    nms_score_threshold: 0.4#0.05#0.05
     nms_iou_threshold: 0.1#0.5#0.5
 
     use_bev: false
@@ -79,8 +79,8 @@ model: {
          anchor_generator_stride: {
            sizes: [1.6, 3.9, 1.56] # wlh
            strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-           #offsets: [0.08, -19.76, -1.78] # origin_offset + strides / 2
-           offsets: [-22.96, -22.96, -1.78] # origin_offset + strides / 2
+           offsets: [0.08, -19.76, -1.78] # origin_offset + strides / 2
+           #offsets: [-22.96, -22.96, -1.78] # origin_offset + strides / 2
            rotations: [0, 1.57] # 0, pi/2
            matched_threshold : 0.6
            unmatched_threshold : 0.45
@@ -90,8 +90,8 @@ model: {
         anchor_generator_stride: {
           sizes: [0.6, 1.76, 1.73] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          #offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
-          offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
+          offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
+          #offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -101,8 +101,8 @@ model: {
         anchor_generator_stride: {
           sizes: [0.6, 0.8, 1.73] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          #offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
-          offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
+          offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
+          #offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -113,8 +113,8 @@ model: {
         anchor_generator_stride: {
           sizes: [1.5, 2.5, 1.7] # wlh
           strides: [0.16, 0.16, 0.0] # if generate only 1 z_center, z_stride will be ignored
-          #offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
-          offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
+          offsets: [0.08, -19.76, -1.465] # origin_offset + strides / 2
+          #offsets: [-22.96, -22.96, -1.465] # origin_offset + strides / 2
           rotations: [0, 1.57] # 0, pi/2
           matched_threshold : 0.5
           unmatched_threshold : 0.35
@@ -203,7 +203,7 @@ eval_input_reader: {
   prefetch_size : 25
   max_number_of_voxels: 10000
   shuffle_points: false
-  num_workers: 3
+  num_workers: 1
   anchor_area_threshold: 1
   remove_environment: false
   #kitti_info_path: "/nfs/nas/Perception/kitti/neolix_infos_val.pkl"
