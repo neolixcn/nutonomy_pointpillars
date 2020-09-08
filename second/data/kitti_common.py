@@ -89,7 +89,7 @@ def get_kitti_info_path(idx,
     img_idx_str += file_tail
     prefix = pathlib.Path(prefix)
     if training:
-        file_path = pathlib.Path('training') / info_type / img_idx_str
+        file_path = prefix / pathlib.Path('training') / info_type / img_idx_str
     else:
         file_path = pathlib.Path('testing') / info_type / img_idx_str
     if exist_check and not (prefix / file_path).exists():
@@ -137,7 +137,7 @@ def get_kitti_image_info(path,
         image_ids = list(range(image_ids))
 
     def map_func(idx):
-        pc_info = {'pc_idx': idx, 'pointcloud_num_features': 4}
+        pc_info = {'pc_idx': idx, 'pointcloud_num_features': 4}   #image_info-->pc_info, image_idx-->pc_idx
         annotations = None
         if velodyne:
             pc_info['velodyne_path'] = get_velodyne_path(
@@ -223,14 +223,16 @@ def label_str_to_int(labels, remove_dontcare=True, dtype=np.int32):
 
 def get_class_to_label_map():
     class_to_label = {
-        'Car': 0,
+        'Vehicle': 0,
         'Pedestrian': 1,
         'Cyclist': 2,
-        'Others': 3,
-        'Others_moving': 4,
-        'Others_stationary': 5,
-        'Vehicle': 6,
-        'Unknown': 7,
+        'Unknown': 3,
+        'Bicycle_no_person': 4,
+        'Bicycles':5,
+        'Others_moving': 6,
+        'Others_stationary': 7,
+        'DontCare': 8,
+        'Others': 9,
     }
     return class_to_label
 
@@ -507,6 +509,7 @@ def add_difficulty_to_annos(info):
     is_hard = np.logical_xor(hard_mask, moderate_mask)
 
     for i in range(len(dims)):
+        ### make the level of difficulty same: 1, moderate, annotate by shl
         if is_easy[i]:
             diff.append(1)
         elif is_moderate[i]:

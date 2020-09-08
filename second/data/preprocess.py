@@ -1,6 +1,7 @@
 import pathlib
 import pickle
 import time
+import os
 from collections import defaultdict
 
 import numpy as np
@@ -130,7 +131,7 @@ def prep_pointcloud(input_dict,
             group_ids = group_ids[selected]
 
         # gt_boxes = box_np_ops.box_camera_to_lidar(gt_boxes, rect, Trv2c)
-        gt_boxes = box_np_ops.box_lidar_to_lidar(gt_boxes)
+        gt_boxes = box_np_ops.box_lidar_to_lidar(gt_boxes)  ## annotate by shl
         if remove_unknown:
             remove_mask = difficulty == -1
             """
@@ -205,14 +206,14 @@ def prep_pointcloud(input_dict,
         gt_classes = np.array(
             [class_names.index(n) + 1 for n in gt_names], dtype=np.int32)
 
-        gt_boxes, points = prep.random_flip(gt_boxes, points)
-        gt_boxes, points = prep.global_rotation(
-            gt_boxes, points, rotation=global_rotation_noise)
-        gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
-                                                  *global_scaling_noise)
-
-        # Global translation
-        gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
+        # gt_boxes, points = prep.random_flip(gt_boxes, points)
+        # gt_boxes, points = prep.global_rotation(
+        #     gt_boxes, points, rotation=global_rotation_noise)
+        # gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
+        #                                           *global_scaling_noise)
+        #
+        # # Global translation
+        # gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
 
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
         mask = prep.filter_gt_box_outside_range(gt_boxes, bv_range)
@@ -277,13 +278,15 @@ def prep_pointcloud(input_dict,
         dense_voxel_map = dense_voxel_map.cumsum(1)
         anchors_area = box_np_ops.fused_get_anchors_area(
             dense_voxel_map, anchors_bv, voxel_size, pc_range, grid_size)
+        # print("anchor_area_threshold", anchor_area_threshold, '\n')
+        # print("anchor_area", anchors_area.shape, '\n', anchors_area, '\n')
         anchors_mask = anchors_area > anchor_area_threshold
         # example['anchors_mask'] = anchors_mask.astype(np.uint8)
         example['anchors_mask'] = anchors_mask
     if generate_bev:
         bev_vxsize = voxel_size.copy()
         bev_vxsize[:2] /= 2
-        bev_vxsize[2] *= 2
+        bev_vxsize[2] *= 21
         bev_map = points_to_bev(points, bev_vxsize, pc_range,
                                 without_reflectivity)
         example["bev_map"] = bev_map
@@ -304,7 +307,7 @@ def prep_pointcloud(input_dict,
         })
     return example
 
-
+data_id = -1
 def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     """read data from KITTI-format infos, then call prep function.
     """
@@ -313,15 +316,29 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     v_path = pathlib.Path(root_path) / info['velodyne_path']
     v_path = v_path.parent.parent / (
         v_path.parent.stem) / v_path.name
-
-    points = np.fromfile(
-        str(v_path), dtype=np.float64,
-        count=-1).reshape([-1, num_point_features])
+    # print("velodyne_path", v_path)
+    # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
+    # jiashan_rootpath = "/nfs/nas/datasets/songhongli/neolix_shanghai_1924/training/velodyne/"
+    # jiashan_rootpath = "/home/songhongli/record_all_lidar_test_bins/"
+    # fname_ls = os.listdir(jiashan_rootpath)
+    # fname_ls.sort()
+    # global data_id
+    # data_id += 1
+    # if data_id == 500:
+    #     assert False
+    # v_path = jiashan_rootpath + fname_ls[data_id]
+    # print(("v_path", v_path))
+    points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points[:, 3] = points[:, 3] / 255
+    points[:, 3] = 0
+    # points = np.fromfile('/home/songhongli/000000.bin', dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points = np.fromfile("/nfs/nas/datasets/songhongli/shanghai_bin/_1595407753_42089.bin", dtype=np.float32, count=-1).reshape([-1, num_point_features])
+    # points = np.fromfile('/nfs/nas/datasets/songhongli/pp_baidu/training/new_000300.bin', dtype=np.float64).astype(np.float32).reshape([-1, num_point_features])
     pc_idx = info['pc_idx']
+    # image_idx = info['image_idx']
     # rect = info['calib/R0_rect'].astype(np.float32)
     # Trv2c = info['calib/Tr_velo_to_cam'].astype(np.float32)
     # P2 = info['calib/P2'].astype(np.float32)
-
     input_dict = {
         'points': points,
         # 'rect': rect,

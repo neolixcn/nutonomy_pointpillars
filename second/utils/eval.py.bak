@@ -4,8 +4,8 @@ import time
 import numba
 import numpy as np
 
-
 from second.core.non_max_suppression.nms_gpu import rotate_iou_gpu_eval
+
 
 def get_mAP(prec):
     sums = 0
@@ -37,7 +37,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['pedestrian', 'vehicle', 'cyclist', 'unknown', 'Bicycle_no_person', 'Bicycles', 'van', 'person_sitting', 'car', 'tractor', 'trailer']
+    CLASS_NAMES = ['vehicle', 'pedestrian', 'cyclist', 'unknown', 'others_moving', 'others_stationary', 'car', 'others']
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -56,20 +56,22 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
         elif (current_cls_name == "Pedestrian".lower()
               and "Person_sitting".lower() == gt_name):
             valid_class = 0
-        elif (current_cls_name == "Car".lower() and "Van".lower() == gt_name):
+        elif (current_cls_name == "Car".lower() and "Vehicle".lower() == gt_name):
+            print("gt:vehilce, prediction:car")
             valid_class = 0
         else:
             valid_class = -1
         ignore = False
-        #if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
-        #        or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
-        #        or (height <= MIN_HEIGHT[difficulty])):
-            # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
-        #    ignore = True
+        # if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
+        #         or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
+        #         or (height <= MIN_HEIGHT[difficulty])):
+        #     # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
+        #     ignore = True
         if valid_class == 1 and not ignore:
             ignored_gt.append(0)
             num_valid_gt += 1
         elif (valid_class == 0 or (ignore and (valid_class == 1))):
+            print("ignore")
             ignored_gt.append(1)
         else:
             ignored_gt.append(-1)
@@ -82,8 +84,8 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
         else:
             valid_class = -1
         height = abs(dt_anno["bbox"][i, 3] - dt_anno["bbox"][i, 1])
-        #if height < MIN_HEIGHT[difficulty]:
-        #    ignored_dt.append(1)
+        # if height < MIN_HEIGHT[difficulty]:
+        #     ignored_dt.append(1)
         if valid_class == 1:
             ignored_dt.append(0)
         else:
@@ -124,7 +126,6 @@ def image_box_overlap(boxes, query_boxes, criterion=-1):
 
 def bev_box_overlap(boxes, qboxes, criterion=-1):
     riou = rotate_iou_gpu_eval(boxes, qboxes, criterion)
-    #riou = rotate_iou(boxes, qboxes)
     return riou
 
 
@@ -162,16 +163,6 @@ def d3_box_overlap(boxes, qboxes, criterion=-1):
     return rinc
 
 
-def d3_box_overlap_part3(boxes, qboxes):
-    d3_overlap = []
-    for b in boxes:
-        for q in qboxes:
-            corners_3d_ground = get_3d_box((b[0], b[1], b[2]), b[-1], (b[3], b[4], b[5]))
-            corners_3d_pre = get_3d_box((q[0], q[1], q[2]), q[-1], (q[3], q[4], q[5]))
-            d3_overlap.append(box3d_iou(corners_3d_pre,corners_3d_ground)[0])
-    return np.array(d3_overlap)
-
-
 @numba.jit(nopython=True)
 def compute_statistics_jit(overlaps,
                            gt_datas,
@@ -192,8 +183,6 @@ def compute_statistics_jit(overlaps,
     gt_alphas = gt_datas[:, 4]
     dt_bboxes = dt_datas[:, :4]
     # gt_bboxes = gt_datas[:, :4]
-    dt_true = []
-    pre_score = []
 
     assigned_detection = [False] * det_size
     ignored_threshold = [False] * det_size
@@ -252,8 +241,6 @@ def compute_statistics_jit(overlaps,
         elif valid_detection != NO_DETECTION:
             # only a tp add a threshold.
             tp += 1
-            dt_true.append(1)
-            pre_score.append(dt_scores[det_idx])
             # thresholds.append(dt_scores[det_idx])
             thresholds[thresh_idx] = dt_scores[det_idx]
             thresh_idx += 1
@@ -268,8 +255,6 @@ def compute_statistics_jit(overlaps,
             if (not (assigned_detection[i] or ignored_det[i] == -1
                      or ignored_det[i] == 1 or ignored_threshold[i])):
                 fp += 1
-                dt_true.append(0)
-                pre_score.append(dt_scores[i])
         nstuff = 0
         if metric == 0:
             overlaps_dt_dc = image_box_overlap(dt_bboxes, dc_bboxes, 0)
@@ -297,7 +282,8 @@ def compute_statistics_jit(overlaps,
                 similarity = np.sum(tmp)
             else:
                 similarity = -1
-    return tp, fp, fn, similarity, thresholds[:thresh_idx], dt_true, pre_score
+
+    return tp, fp, fn, similarity, thresholds[:thresh_idx]
 
 
 def get_split_parts(num, num_part):
@@ -331,13 +317,13 @@ def fused_compute_statistics(overlaps,
         for t, thresh in enumerate(thresholds):
             overlap = overlaps[dt_num:dt_num + dt_nums[i], gt_num:
                                gt_num + gt_nums[i]]
-
+fp
             gt_data = gt_datas[gt_num:gt_num + gt_nums[i]]
             dt_data = dt_datas[dt_num:dt_num + dt_nums[i]]
             ignored_gt = ignored_gts[gt_num:gt_num + gt_nums[i]]
             ignored_det = ignored_dets[dt_num:dt_num + dt_nums[i]]
             dontcare = dontcares[dc_num:dc_num + dc_nums[i]]
-            tp, fp, fn, similarity, _, _, _ = compute_statistics_jit(
+            tp, fp, fn, similarity, _ = compute_statistics_jit(
                 overlap,
                 gt_data,
                 dt_data,
@@ -367,7 +353,6 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
         dt_annos: dict, must from get_label_annos() in kitti_common.py
         metric: eval type. 0: bbox, 1: bev, 2: 3d
         num_parts: int. a parameter for fast calculate algorithm
-        box: x,y,z   l,h,w, r
     """
     assert len(gt_annos) == len(dt_annos)
     total_dt_num = np.stack([len(a["name"]) for a in dt_annos], 0)
@@ -386,7 +371,7 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             overlap_part = image_box_overlap(gt_boxes, dt_boxes)
         elif metric == 1:
             loc = np.concatenate(
-                [a["location"][:, [0, 1]] for a in gt_annos_part], 0)
+                [a["location"][:, [0, 1]] for a in gt_annos_part], 0)  # x,y,z, l, h, w, theta
             dims = np.concatenate(
                 [a["dimensions"][:, [0, 2]] for a in gt_annos_part], 0)
             rots = np.concatenate([a["rotation_y"] for a in gt_annos_part], 0)
@@ -414,8 +399,6 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
                 [loc, dims, rots[..., np.newaxis]], axis=1)
             overlap_part = d3_box_overlap(gt_boxes, dt_boxes).astype(
                 np.float64)
-            #overlap_part = d3_box_overlap_part3(gt_boxes, dt_boxes).astype(
-            #    np.float64)
         else:
             raise ValueError("unknown metric")
         parted_overlaps.append(overlap_part)
@@ -548,7 +531,6 @@ def eval_class(gt_annos,
     precision = np.zeros([N_SAMPLE_PTS])
     recall = np.zeros([N_SAMPLE_PTS])
     aos = np.zeros([N_SAMPLE_PTS])
-    print("thresholds", len(thresholds))
     for i in range(len(thresholds)):
         recall[i] = pr[i, 0] / (pr[i, 0] + pr[i, 2])
         precision[i] = pr[i, 0] / (pr[i, 0] + pr[i, 1])
@@ -594,7 +576,7 @@ def eval_class_v3(gt_annos,
     num_examples = len(gt_annos)
     split_parts = get_split_parts(num_examples, num_parts)
 
-    rets = calculate_iou_partly(dt_annos, gt_annos, metric, num_parts)
+    rets = calculate_iou_partly(gt_annos, dt_annos, metric, num_parts)
     overlaps, parted_overlaps, total_dt_num, total_gt_num = rets
     N_SAMPLE_PTS = 41
     num_minoverlap = len(min_overlaps)
@@ -612,11 +594,6 @@ def eval_class_v3(gt_annos,
              dontcares, total_dc_num, total_num_valid_gt) = rets
             for k, min_overlap in enumerate(min_overlaps[:, metric, m]):
                 thresholdss = []
-                tps = []
-                fps = []
-                fns = []
-                dt_trues = []
-                dt_scoress = []
                 for i in range(len(gt_annos)):
                     rets = compute_statistics_jit(
                         overlaps[i],
@@ -628,29 +605,10 @@ def eval_class_v3(gt_annos,
                         metric,
                         min_overlap=min_overlap,
                         thresh=0.0,
-                        compute_fp=True)
-                    tp, fp, fn, similarity, thresholds, dt_true, dt_scores = rets
-                    tps.append(tp)
-                    fps.append(fp)
-                    fns.append(fn)
+                        compute_fp=False)
+                    tp, fp, fn, similarity, thresholds = rets
                     thresholdss += thresholds.tolist()
-                    dt_trues += dt_true
-                    dt_scoress += dt_scores
                 thresholdss = np.array(thresholdss)
-                tps = np.array(tps)
-                fps = np.array(fps)
-                fns = np.array(fns)
-                dt_trues = np.array(dt_trues)
-                dt_scoress = np.array(dt_scoress)
-                if l == 0:
-                    np.save("%d.%d.%d_true" % (m, l, k), dt_trues)
-                    np.save("%d.%d.%d_score" % (m, l, k), dt_scoress)
-                print("m:", m, " l:", l, " k:", k)
-                print("tps.sum()", tps.sum())
-                print("fps.sum()", fps.sum())
-                print("trues.sum()", dt_trues.sum())
-                print("recall", tps.sum() / (tps.sum() + fns.sum()))
-                print("precision", tps.sum() / (tps.sum() + fps.sum()))
                 thresholds = get_thresholds(thresholdss, total_num_valid_gt)
                 thresholds = np.array(thresholds)
                 pr = np.zeros([len(thresholds), 4])
@@ -694,11 +652,10 @@ def eval_class_v3(gt_annos,
                     if compute_aos:
                         aos[m, l, k, i] = np.max(aos[m, l, k, i:], axis=-1)
     ret_dict = {
-            "recall": recall,
-            "precision": precision,
-            "orientation": aos,}
-    # print("recall", recall.shape)
-    # print("precision", precision.shape)
+        "recall": recall,
+        "precision": precision,
+        "orientation": aos,
+    }
     return ret_dict
 
 
@@ -752,7 +709,6 @@ def do_eval_v2(gt_annos,
     mAP_bev = get_mAP_v2(ret["precision"])
     ret = eval_class_v3(gt_annos, dt_annos, current_classes, difficultys, 2,
                         min_overlaps)
-
     mAP_3d = get_mAP_v2(ret["precision"])
     return mAP_bbox, mAP_bev, mAP_3d, mAP_aos
 
@@ -785,19 +741,21 @@ def print_str(value, *arg, sstream=None):
 
 
 def get_official_eval_result_v1(gt_annos, dt_annos, current_class):
-    mAP_0_7 = np.array([[0.5, 0.7, 0.5, 0.5, 0.5], [0.5, 0.7, 0.5, 0.5, 0.5],
-                        [0.5, 0.7, 0.5, 0.5, 0.5]])
-    mAP_0_5 = np.array([[0.5, 0.7, 0.5, 0.5,
-                         0.5], [0.25, 0.5, 0.25, 0.25, 0.25],
-                        [0.25, 0.5, 0.25, 0.25, 0.25]])
+    mAP_0_7 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5], [0.7, 0.5, 0.5, 0.7, 0.5],
+                        [0.7, 0.5, 0.5, 0.7, 0.5]])
+    mAP_0_5 = np.array([[0.7, 0.5, 0.5, 0.7,
+                         0.5], [0.5, 0.25, 0.25, 0.5, 0.25],
+                        [0.5, 0.25, 0.25, 0.5, 0.25]])
     mAP_list = [mAP_0_7, mAP_0_5]
     class_to_name = {
-        0: 'Pedestrian',
-        1: 'Vehicle',
+        0: 'Car',
+        1: 'Pedestrian',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Bicycle_no_person',
-        5: 'Bicycles'
+        4: 'Others_moving',
+        5: 'Others_stationary',
+        6: 'Vehicle',
+        7: 'Others',
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if isinstance(current_class, str):
@@ -837,27 +795,22 @@ def get_official_eval_result_v1(gt_annos, dt_annos, current_class):
 
 
 def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0, 1, 2], return_data=False):
-    #overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5],
-    #                        [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5],
-    #                        [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5]])
-    #overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5, 0.5],
-    #                        [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25],
-    #                        [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25]])
-    overlap_0_7 = np.array([[0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
-                            [0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5],
-                            [0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 0.5]])
-    overlap_0_5 = np.array([[0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5],
-                            [0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25],
-                            [0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25]])
-
+    overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.7],
+                            [0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.7],
+                            [0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.7]])
+    overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                            [0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5],
+                            [0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5]])
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
     class_to_name = {
-        0: 'Pedestrian',
-        1: 'Vehicle',
+        0: 'Car',
+        1: 'Pedestrian',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Bicycle_no_person',
-        5: 'Bicycles'
+        4: 'Others_moving',
+        5: 'Others_stationary',
+        6: 'Car',
+        7: 'Others'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
@@ -908,12 +861,14 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
 
 def get_coco_eval_result(gt_annos, dt_annos, current_classes):
     class_to_name = {
-        0: 'Pedestrian',
-        1: 'Vehicle',
+        0: 'Car',
+        1: 'Pedestrian',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Bicycle_no_person',
-        5: 'Bicycles'
+        4: 'Others_moving',
+        5: 'Others_stationary',
+        6: 'Vehicle',
+        7: 'Others',
     }
     class_to_range = {
         0: [0.5, 1.0, 0.05],

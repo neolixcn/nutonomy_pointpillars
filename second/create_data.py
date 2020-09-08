@@ -32,7 +32,7 @@ def _calculate_num_points_in_gt(data_path, infos, relative_path, remove_outside=
         else:
             v_path = info["velodyne_path"]
         points_v = np.fromfile(
-            v_path, dtype=np.float64, count=-1).reshape([-1, num_features])
+            v_path, dtype=np.float32, count=-1).reshape([-1, num_features])
         # rect = info['calib/R0_rect']
         # Trv2c = info['calib/Tr_velo_to_cam']
         # P2 = info['calib/P2']
@@ -51,14 +51,15 @@ def _calculate_num_points_in_gt(data_path, infos, relative_path, remove_outside=
         #     [loc, dims, rots[..., np.newaxis]], axis=1)
         # gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
         #     gt_boxes_camera, rect, Trv2c)
-
+        # gt_boxes_lidar = np.concatenate([loc, dims[:, [2, 0, 1]],
+        #                                  -rots[..., np.newaxis]], axis=1)
         gt_boxes_lidar0 = np.concatenate(
             [loc, dims, rots[..., np.newaxis]], axis=1)
         gt_boxes_lidar = box_np_ops.box_lidar_to_lidar(
             gt_boxes_lidar0
         )
 
-        # get lidar boxes[[x, y, z, w, l, h, ry],...], ry is the rotation in label, ry=-pi/2-rz.
+        # get lidar boxes[[x, y, z, w, l, h, ry],...], ry is the rotation in label, ry=-pi/2-rz. annotate by shl
         indices = box_np_ops.points_in_rbbox(points_v[:, :3], gt_boxes_lidar)
         num_points_in_gt = indices.sum(0)
         num_ignored = len(annos['dimensions']) - num_obj
@@ -71,10 +72,12 @@ def create_kitti_info_file(data_path,
                            save_path=None,
                            create_trainval=False,
                            relative_path=True):
-    train_img_ids = _read_imageset_file("./data/ImageSets/train.txt")
-    val_img_ids = _read_imageset_file("./data/ImageSets/val.txt")
-    trainval_img_ids = _read_imageset_file("./data/ImageSets/trainval.txt")
-    test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
+    # train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_second.txt")
+    # val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_second.txt")
+    # trainval_img_ids = _read_imageset_file("./data/ImageSets/trainval_ids_second.txt")
+    # test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
+    train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_shanghaipuruan.txt")
+    val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_shanghaipuruan.txt")
 
     print("Generate info. this may take several minutes.")
     if save_path is None:
@@ -88,8 +91,12 @@ def create_kitti_info_file(data_path,
         calib=True,
         image_ids=train_img_ids,
         relative_path=relative_path)
+    # f = open(save_path / 'neolix_infos_train.pkl', 'rb')
+    # kitti_infos_train = pickle.load(f)
     _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
-    filename = save_path / 'neolix_infos_train.pkl'
+    filename = save_path / 'shanghaipuruan_infos_train.pkl'
+
+    # filename = save_path / 'neolix_kitti16_infos_train.pkl'
     print(f"Kitti info train file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_train, f)
@@ -101,7 +108,9 @@ def create_kitti_info_file(data_path,
         image_ids=val_img_ids,
         relative_path=relative_path)
     _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
-    filename = save_path / 'neolix_infos_val.pkl'
+    # filename = save_path / 'neolix_kitti16_infos_val.pkl'
+    filename = save_path / 'shanghaipuruan_infos_val.pkl'
+
     print(f"Kitti info val file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_val, f)
@@ -119,23 +128,25 @@ def create_kitti_info_file(data_path,
         with open(filename, 'wb') as f:
             pickle.dump(kitti_infos_trainval, f)
     """
-    filename = save_path / 'neolix_infos_trainval.pkl'
+    # filename = save_path / 'neolix_kitti16_infos_trainval.pkl'
+    filename = save_path / 'shanghaipuruan_infos_trainval.pkl'
+
     print(f"Kitti info trainval file is saved to {filename}")
     with open(filename, 'wb') as f:
         pickle.dump(kitti_infos_train + kitti_infos_val, f)
 
-    kitti_infos_test = kitti.get_kitti_image_info(
-        data_path,
-        training=False,
-        label_info=False,
-        velodyne=True,
-        calib=True,
-        image_ids=test_img_ids,
-        relative_path=relative_path)
-    filename = save_path / 'neolix_infos_test.pkl'
-    print(f"Kitti info test file is saved to {filename}")
-    with open(filename, 'wb') as f:
-        pickle.dump(kitti_infos_test, f)
+    # kitti_infos_test = kitti.get_kitti_image_info(
+    #     data_path,
+    #     training=False,
+    #     label_info=False,
+    #     velodyne=True,
+    #     calib=True,
+    #     image_ids=test_img_ids,
+    #     relative_path=relative_path)
+    # filename = save_path / 'neolix_infos_test.pkl'
+    # print(f"Kitti info test file is saved to {filename}")
+    # with open(filename, 'wb') as f:
+    #     pickle.dump(kitti_infos_test, f)
 
 
 def _create_reduced_point_cloud(data_path,
@@ -148,7 +159,7 @@ def _create_reduced_point_cloud(data_path,
         v_path = info['velodyne_path']
         v_path = pathlib.Path(data_path) / v_path
         points_v = np.fromfile(
-            str(v_path), dtype=np.float64, count=-1).reshape([-1, 4])
+            str(v_path), dtype=np.float32, count=-1).reshape([-1, 4])
         rect = info['calib/R0_rect']
         P2 = info['calib/P2']
         Trv2c = info['calib/Tr_velo_to_cam']
@@ -181,11 +192,11 @@ def create_reduced_point_cloud(data_path,
                                save_path=None,
                                with_back=False):
     if train_info_path is None:
-        train_info_path = pathlib.Path(data_path) / 'neolix_infos_train.pkl'
+        train_info_path = pathlib.Path(data_path) / 'kitti_infos_train.pkl'
     if val_info_path is None:
-        val_info_path = pathlib.Path(data_path) / 'neolix_infos_val.pkl'
+        val_info_path = pathlib.Path(data_path) / 'kitti_infos_val.pkl'
     if test_info_path is None:
-        test_info_path = pathlib.Path(data_path) / 'neolix_infos_test.pkl'
+        test_info_path = pathlib.Path(data_path) / 'kitti_infos_test.pkl'
 
     _create_reduced_point_cloud(data_path, train_info_path, save_path)
     _create_reduced_point_cloud(data_path, val_info_path, save_path)
@@ -236,10 +247,10 @@ def create_groundtruth_database(data_path,
         if 'pointcloud_num_features' in info:
             num_features = info['pointcloud_num_features']
         points = np.fromfile(
-            velodyne_path, dtype=np.float64, count=-1).reshape([-1, num_features])
+            velodyne_path, dtype=np.float32, count=-1).reshape([-1, num_features])
 
-        pc_idx = info["pc_idx"]
         # image_idx = info["image_idx"]
+        pc_idx = info["pc_idx"]
         # rect = info['calib/R0_rect']
         # P2 = info['calib/P2']
         # Trv2c = info['calib/Tr_velo_to_cam']
@@ -255,7 +266,7 @@ def create_groundtruth_database(data_path,
         num_obj = np.sum(annos["index"] >= 0)
         # rbbox_cam = kitti.anno_to_rbboxes(annos)[:num_obj]
         # rbbox_lidar = box_np_ops.box_camera_to_lidar(rbbox_cam, rect, Trv2c)
-        rbbox_lidar0 = kitti.anno_to_rbboxes(annos)[:num_obj]  # check the demension
+        rbbox_lidar0 = kitti.anno_to_rbboxes(annos)[:num_obj]   # check the demension, annotate by shl
         rbbox_lidar = box_np_ops.box_lidar_to_lidar(rbbox_lidar0)
         if bev_only: # set z and h to limits
             assert coors_range is not None
@@ -305,10 +316,97 @@ def create_groundtruth_database(data_path,
                 all_db_infos[names[i]].append(db_info)
     for k, v in all_db_infos.items():
         print(f"load {len(v)} {k} database infos")
-
     with open(db_info_save_path, 'wb') as f:
         pickle.dump(all_db_infos, f)
 
 
 if __name__ == '__main__':
     fire.Fire()
+
+
+
+#  ppbaidusecond
+#     anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.53, 0.51, 1.40]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.11]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.52, 3.49, 1.74]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.09]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.68, 1.49, 1.40]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.08]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.47, 0.46, 0.92]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, 0.19]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+#
+#
+
+# shanghai_part1
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.69, 0.69, 1.78]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.17]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.91, 4.58, 1.67]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.17]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.6
+#         unmatched_threshold: 0.45
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [0.85, 1.94, 1.68]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.25]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }
+# anchor_generators: {
+#     anchor_generator_stride: {
+#         sizes: [1.14, 1.08, 0.97]  # wlh
+#         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+#         offsets: [-22.96, -22.96, -0.20]  # origin_offset + strides / 2
+#         rotations: [0, 1.57]  # 0, pi/2
+#         matched_threshold: 0.5
+#         unmatched_threshold: 0.35
+#     }
+# }

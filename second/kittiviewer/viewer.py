@@ -401,8 +401,7 @@ class KittiPointCloudView(KittiGLViewWidget):
                 grid_size) > 1
         print(np.sum(anchors_mask), anchors_mask.shape)
         class_names = [
-            'Car', "Pedestrian", "Cyclist", 'Van', 'Truck', "Tram", 'Misc',
-            'Person_sitting'
+            'Vehicle', "Pedestrian", "Cyclist", 'Others', 'Others_moving', "Others_stationary", 'Vehicle'
         ]
         gt_classes = np.array(
             [class_names.index(n) + 1 for n in gt_names], dtype=np.int32)
@@ -812,7 +811,7 @@ class KittiViewer(QMainWindow):
         self.json_setting.set("latest_info_path", str(info_path))
         with open(info_path, 'rb') as f:
             self.kitti_infos = pickle.load(f)
-        db_infos_path = Path(self.root_path) / "kitti_dbinfos_train.pkl"
+        db_infos_path = Path(self.root_path) / "neolix_dbinfos_train.pkl"
         if db_infos_path.exists():
             with open(db_infos_path, 'rb') as f:
                 self.db_infos = pickle.load(f)
@@ -1358,20 +1357,22 @@ class KittiViewer(QMainWindow):
     @staticmethod
     def get_simpify_labels(labels):
         label_map = {
-            "Car": "V",
+            "Vehicle": "V",
             "Pedestrian": "P",
             "Cyclist": "C",
-            "car": "C",
-            "tractor": "T1",
-            "trailer": "T2",
+            "Others": "O",
+            "Others_moving": "Om",
+            "Others_stationary": "Os",
+            "Vehicle": "V"
         }
         label_count = {
-            "Car": 0,
+            "Vehicle": 0,
             "Pedestrian": 0,
             "Cyclist": 0,
-            "car": 0,
-            "tractor": 0,
-            "trailer": 0,
+            "Others": 0,
+            "Others_moving": 0,
+            "Others_stationary": 0,
+            "Vehicle": 0
         }
         ret = []
         for i, name in enumerate(labels):

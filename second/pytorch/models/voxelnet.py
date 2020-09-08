@@ -5,6 +5,7 @@ from functools import reduce
 import numpy as np
 # import sparseconvnet as scn
 import torch
+print(torch.__version__)
 from torch import nn
 from torch.nn import functional as F
 
@@ -466,6 +467,8 @@ class RPN(nn.Module):
         x = torch.cat([up1, up2, up3], dim=1)
         box_preds = self.conv_box(x)
         cls_preds = self.conv_cls(x)
+        # print("rpn_box.shape", box_preds.shape)
+        # print("rpn_cls.shape", cls_preds.shape)
         # [N, C, y(H), x(W)]
         box_preds = box_preds.permute(0, 2, 3, 1).contiguous()
         cls_preds = cls_preds.permute(0, 2, 3, 1).contiguous()
@@ -596,7 +599,7 @@ class VoxelNet(nn.Module):
             num_filters=vfe_num_filters,
             with_distance=with_distance)
 
-        print("middle_class_name", middle_class_name)
+        # print("middle_class_name", middle_class_name)
         if middle_class_name == "PointPillarsScatter":
             self.middle_feature_extractor = PointPillarsScatter(output_shape=output_shape,
                                                                 num_input_features=vfe_num_filters[-1],
@@ -682,6 +685,9 @@ class VoxelNet(nn.Module):
         y_sub_shaped = example[6]
         mask = example[7]
 
+        # voxel_features = self.voxel_feature_extractor(pillar_x, pillar_y, pillar_z, pillar_i,
+        #                                               num_points, x_sub_shaped, y_sub_shaped, mask)
+
         voxel_features = self.voxel_feature_extractor(example[:8])
 
         ###################################################################################
@@ -690,13 +696,29 @@ class VoxelNet(nn.Module):
         voxel_features = voxel_features.squeeze()
         voxel_features = voxel_features.permute(1, 0)
 
+        # with open("pfe_feature.txt", 'w') as f:
+        #     f.write(str(voxel_features.data))
+
         coors = example[8]
+        # from IPython import embed
+        # embed()
         spatial_features = self.middle_feature_extractor(voxel_features, coors)
+        # print("spatial_features", spatial_features.size())
         # spatial_features input size is : [1, 64, 496, 432]
         preds_dict = self.rpn(spatial_features)
+        # with open("rpn_box.txt", 'w') as f1:
+        #     f1.write(str(preds_dict[0].data))
+        # with open("rpn_cls.txt", 'w') as f2:
+        #     f2.write(str(preds_dict[1].data))
+        # with open("rpn_dir.txt", 'w') as f3:
+        #     f3.write(str(preds_dict[2].data))
         # return preds_dict
         box_preds = preds_dict[0]
         cls_preds = preds_dict[1]
+        # print("box_preds.shape", box_preds.shape)
+        # print("cls_preds.shape", cls_preds.shape)
+        # return preds_dict
+        # return preds_dict
         if self.training:
             #labels = example['labels']
             #reg_targets = example['reg_targets']
@@ -799,7 +821,11 @@ class VoxelNet(nn.Module):
                 batch_pc_idx, batch_anchors_mask
         ):
             if a_mask is not None:
+                # print("####################")
+                # print(a_mask)
+                # print("box_preds", box_preds.shape)
                 box_preds = box_preds[a_mask]
+                # print("after_box_shape", box_preds.shape)
                 cls_preds = cls_preds[a_mask]
             if self._use_direction_classifier:
                 if a_mask is not None:
@@ -947,15 +973,15 @@ class VoxelNet(nn.Module):
                 # # box_corners_in_image: [N, 8, 2]
                 # minxy = torch.min(box_corners_in_image, dim=1)[0]
                 # maxxy = torch.max(box_corners_in_image, dim=1)[0]
-                # # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
-                # # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
-                # # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
-                # # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
-                # # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
+                # minx = torch.min(box_corners_in_image[..., 0], dim=1)[0]
+                # maxx = torch.max(box_corners_in_image[..., 0], dim=1)[0]
+                # miny = torch.min(box_corners_in_image[..., 1], dim=1)[0]
+                # maxy = torch.max(box_corners_in_image[..., 1], dim=1)[0]
+                # box_2d_preds = torch.stack([minx, miny, maxx, maxy], dim=1)
                 # box_2d_preds = torch.cat([minxy, maxxy], dim=1)
-                #
+
                 # predictions_dict = (box_2d_preds, final_box_preds_camera,
-                #                     final_box_preds, final_scores, label_preds, img_idx)
+                #                     final_box_preds, final_scores, label_preds, pc_idx)
                 predictions_dict = (final_box_preds, final_scores, label_preds, pc_idx)
             else:
                 predictions_dict = (None, None, None, pc_idx)

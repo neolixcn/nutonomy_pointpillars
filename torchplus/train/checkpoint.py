@@ -117,6 +117,23 @@ def restore(ckpt_path, model):
     model.load_state_dict(torch.load(ckpt_path))
     print("Restoring parameters from {}".format(ckpt_path))
 
+def restore_multi_gpus(ckpt_path, model):
+    if not Path(ckpt_path).is_file():
+        raise ValueError("checkpoint {} not exist.".format(ckpt_path))
+    # model.load_state_dict(torch.load(ckpt_path))
+    # print("Restoring parameters from {}".format(ckpt_path))
+    state_dict = torch.load(ckpt_path)
+    # create new OrderedDict that does not contain `module.`
+    from collections import OrderedDict
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        namekey = k[7:]  # remove `module.`
+        new_state_dict[namekey] = v
+    # load params
+    model.load_state_dict(new_state_dict)
+    print("Restoring parameters from {}".format(ckpt_path))
+
+
 
 def _check_model_names(models):
     model_names = []
@@ -144,6 +161,13 @@ def try_restore_latest_checkpoints(model_dir, models):
         latest_ckpt = latest_checkpoint(model_dir, name)
         if latest_ckpt is not None:
             restore(latest_ckpt, model)
+
+def try_restore_latest_checkpoints_multi_gpus(model_dir, models):
+    name_to_model = _get_name_to_model_map(models)
+    for name, model in name_to_model.items():
+        latest_ckpt = latest_checkpoint(model_dir, name)
+        if latest_ckpt is not None:
+            restore_multi_gpus(latest_ckpt, model)
 
 def restore_latest_checkpoints(model_dir, models):
     name_to_model = _get_name_to_model_map(models)
