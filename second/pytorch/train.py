@@ -749,17 +749,17 @@ def evaluate(config_path,
         voxel_generator=voxel_generator,
         target_assigner=target_assigner)
     ############################################
-    # gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
-    # result_path_step = result_path / f"step_{net.get_global_step()}"
-    # result_path_step.mkdir(parents=True, exist_ok=True)
-    # with open("/data/models/songhongli/test_models/test2/eval_results/step_1091285/" + "result.pkl", 'rb') as f:
-    #     dt_annos = pickle.load(f)
+    gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
+    result_path_step = result_path / f"step_{net.get_global_step()}"
+    result_path_step.mkdir(parents=True, exist_ok=True)
+    with open("/nfs/nas/model/songhongli/neolix_shanghai_3026/eval_results/step_264000/" + "result.pkl", 'rb') as f:
+        dt_annos = pickle.load(f)
     # with open("/nfs/nas/model/songhongli/neolix_shanghai_1924_no_intensity/eval_results/step_123040/" + "result.pkl", 'rb') as f:
     #     dt_annos = pickle.load(f)
-    # result = get_official_eval_result(gt_annos, dt_annos, class_names)
-    # ##########################################
-    # print(result)
-    # assert False
+    result = get_official_eval_result(gt_annos, dt_annos, class_names)
+    ##########################################
+    print(result)
+    assert False
     eval_dataloader = torch.utils.data.DataLoader(
         eval_dataset,
         batch_size=input_cfg.batch_size,
