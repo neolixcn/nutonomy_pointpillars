@@ -445,6 +445,11 @@ def count_label(l_path):
 
 data_id = -1
 def on_press(key):
+    """
+    可视化验证集pkl的boxes、检测结果pkl的boxes、误检每一类的boxes漏检每一类的boxes
+    :param key:
+    :return:
+    """
     global data_id
     # key = input()
     # key = input()
@@ -486,6 +491,13 @@ def on_press(key):
         sys.exit()
 
 def generate_fn_fp_dict(fn_file):
+    """
+    解析fn文件或者fp文件，得到每帧对应的fn box的index集合
+    :param fn_file:fn_file: 保存fn和fp的文件，其中每一行的保存格式是 pcd_idx:3, box_id:1
+    pcd_idx:fn所在的index
+    box_idx:每帧中fp所在的box的index
+    :return: fp（fn）的dict，key为pcd的index， value为该帧中box的index组成的集合
+    """
     with open(fn_file, 'r') as f1:
         results_lines = f1.readlines()
         false_dict = {}

@@ -694,7 +694,8 @@ def evaluate(config_path,
              predict_test=False,
              ckpt_path=None,
              ref_detfile=None,
-             pickle_result=True):
+             pickle_result=True,
+             read_predict_pcl_path=None):
 
     model_dir = str(Path(model_dir).resolve())
     if predict_test:
@@ -748,89 +749,89 @@ def evaluate(config_path,
         training=False,
         voxel_generator=voxel_generator,
         target_assigner=target_assigner)
-    ############################################
-    gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
-    result_path_step = result_path / f"step_{net.get_global_step()}"
-    result_path_step.mkdir(parents=True, exist_ok=True)
-    with open("/nfs/nas/model/songhongli/neolix_shanghai_3026/eval_results/step_264000/" + "result.pkl", 'rb') as f:
-        dt_annos = pickle.load(f)
-    # with open("/nfs/nas/model/songhongli/neolix_shanghai_1924_no_intensity/eval_results/step_123040/" + "result.pkl", 'rb') as f:
-    #     dt_annos = pickle.load(f)
-    result = get_official_eval_result(gt_annos, dt_annos, class_names)
-    ##########################################
-    print(result)
-    assert False
-    eval_dataloader = torch.utils.data.DataLoader(
-        eval_dataset,
-        batch_size=input_cfg.batch_size,
-        shuffle=False,
-        num_workers=input_cfg.num_workers,
-        pin_memory=False,
-        collate_fn=merge_second_batch)
 
-    if train_cfg.enable_mixed_precision:
-        float_dtype = torch.float16
-    else:
-        float_dtype = torch.float32
-
-    net.eval()
-    result_path_step = result_path / f"step_{net.get_global_step()}"
-    result_path_step.mkdir(parents=True, exist_ok=True)
-    t = time.time()
-    dt_annos = []
-    global_set = None
-    print("Generate output labels...")
-    bar = ProgressBar()
-    bar.start(len(eval_dataset) // input_cfg.batch_size + 1)
-
-    for example in iter(eval_dataloader):
-        # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinates', 3: 'rect'
-        #               4: 'Trv2c', 5: 'P2', 6: 'anchors', 7: 'anchors_mask'
-        #               8: 'image_idx', 9: 'image_shape']
-
-        # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
-        # 4: 'anchor_mask', 5: 'pc_idx']
-        example = example_convert_to_torch(example, float_dtype)
-        # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
-        # 4: 'anchor_mask', 5: 'pc_idx']
-
-        example_tuple = list(example.values())
-        example_tuple[5] = torch.from_numpy(example_tuple[5])
-        # example_tuple[9] = torch.from_numpy(example_tuple[9])
-
-        if (example_tuple[3].size()[0] != input_cfg.batch_size):
-            continue
-
-        if pickle_result:
-            dt_annos += predict_kitti_to_anno(
-                net, example_tuple, class_names, center_limit_range,
-                model_cfg.lidar_input, global_set)
-            with open(result_path_step / "result.pkl", 'wb') as f:
-                pickle.dump(dt_annos, f)
-
-        else:
-            _predict_kitti_to_file(net, example_tuple, result_path_step, class_names,
-                                   center_limit_range, model_cfg.lidar_input)
-        bar.print_bar()
-
-    sec_per_example = len(eval_dataset) / (time.time() - t)
-    print(f'generate label finished({sec_per_example:.2f}/s). start eval:')
-
-    print(f"avg forward time per example: {net.avg_forward_time:.3f}")
-    print(f"avg postprocess time per example: {net.avg_postprocess_time:.3f}")
-    if not predict_test:
+    if read_predict_pcl_path is not None:
         gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
-        # if (len(gt_annos)%2 != 0):
-        #     del gt_annos[-1]
-        if not pickle_result:
-            dt_annos = kitti.get_label_annos(result_path_step)
+        result_path_step = result_path / f"step_{net.get_global_step()}"
+        result_path_step.mkdir(parents=True, exist_ok=True)
+        with open(read_predict_pcl_path + "result.pkl", 'rb') as f:
+            dt_annos = pickle.load(f)
+        # with open("/nfs/nas/model/songhongli/neolix_shanghai_3026/eval_results/step_264000/" + "result.pkl", 'rb') as f:
+        #     dt_annos = pickle.load(f)
         result = get_official_eval_result(gt_annos, dt_annos, class_names)
         print(result)
-        result = get_coco_eval_result(gt_annos, dt_annos, class_names)
-        print(result)
-        # if pickle_result:
-        #     with open(result_path_step / "result.pkl", 'wb') as f:
-        #         pickle.dump(dt_annos, f)
+    else:
+        eval_dataloader = torch.utils.data.DataLoader(
+            eval_dataset,
+            batch_size=input_cfg.batch_size,
+            shuffle=False,
+            num_workers=input_cfg.num_workers,
+            pin_memory=False,
+            collate_fn=merge_second_batch)
+
+        if train_cfg.enable_mixed_precision:
+            float_dtype = torch.float16
+        else:
+            float_dtype = torch.float32
+
+        net.eval()
+        result_path_step = result_path / f"step_{net.get_global_step()}"
+        result_path_step.mkdir(parents=True, exist_ok=True)
+        t = time.time()
+        dt_annos = []
+        global_set = None
+        print("Generate output labels...")
+        bar = ProgressBar()
+        bar.start(len(eval_dataset) // input_cfg.batch_size + 1)
+
+        for example in iter(eval_dataloader):
+            # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinates', 3: 'rect'
+            #               4: 'Trv2c', 5: 'P2', 6: 'anchors', 7: 'anchors_mask'
+            #               8: 'image_idx', 9: 'image_shape']
+
+            # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
+            # 4: 'anchor_mask', 5: 'pc_idx']
+            example = example_convert_to_torch(example, float_dtype)
+            # eval example [0: 'voxels', 1: 'num_points', 2: 'coordinate', 3: 'anchors',
+            # 4: 'anchor_mask', 5: 'pc_idx']
+
+            example_tuple = list(example.values())
+            example_tuple[5] = torch.from_numpy(example_tuple[5])
+            # example_tuple[9] = torch.from_numpy(example_tuple[9])
+
+            if (example_tuple[3].size()[0] != input_cfg.batch_size):
+                continue
+
+            if pickle_result:
+                dt_annos += predict_kitti_to_anno(
+                    net, example_tuple, class_names, center_limit_range,
+                    model_cfg.lidar_input, global_set)
+                with open(result_path_step / "result.pkl", 'wb') as f:
+                    pickle.dump(dt_annos, f)
+
+            else:
+                _predict_kitti_to_file(net, example_tuple, result_path_step, class_names,
+                                       center_limit_range, model_cfg.lidar_input)
+            bar.print_bar()
+
+        sec_per_example = len(eval_dataset) / (time.time() - t)
+        print(f'generate label finished({sec_per_example:.2f}/s). start eval:')
+
+        print(f"avg forward time per example: {net.avg_forward_time:.3f}")
+        print(f"avg postprocess time per example: {net.avg_postprocess_time:.3f}")
+        if not predict_test:
+            gt_annos = [info["annos"] for info in eval_dataset.dataset.kitti_infos]
+            # if (len(gt_annos)%2 != 0):
+            #     del gt_annos[-1]
+            if not pickle_result:
+                dt_annos = kitti.get_label_annos(result_path_step)
+            result = get_official_eval_result(gt_annos, dt_annos, class_names)
+            print(result)
+            # result = get_coco_eval_result(gt_annos, dt_annos, class_names)
+            # print(result)
+            # if pickle_result:
+            #     with open(result_path_step / "result.pkl", 'wb') as f:
+            #         pickle.dump(dt_annos, f)
 
 
 def export_onnx(net, example, class_names,
