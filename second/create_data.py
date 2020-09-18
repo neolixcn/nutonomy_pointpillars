@@ -221,13 +221,13 @@ def create_groundtruth_database(data_path,
                                 coors_range=None):
     root_path = pathlib.Path(data_path)
     if info_path is None:
-        info_path = root_path / 'neolix_infos_train.pkl'
+        info_path = root_path / 'shanghaipuruan_infos_train.pkl'
     if database_save_path is None:
         database_save_path = root_path / 'gt_database'
     else:
         database_save_path = pathlib.Path(database_save_path)
     if db_info_save_path is None:
-        db_info_save_path = root_path / "neolix_dbinfos_train.pkl"
+        db_info_save_path = root_path / "shanghaipuruan_dbinfos_train.pkl"
     database_save_path.mkdir(parents=True, exist_ok=True)
     with open(info_path, 'rb') as f:
         kitti_infos = pickle.load(f)

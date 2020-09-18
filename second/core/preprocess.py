@@ -77,7 +77,6 @@ class DBFilterByDifficulty(DataBasePreprocessing):
 class DBFilterByMinNumPoint(DataBasePreprocessing):
     def __init__(self, min_gt_point_dict):
         self._min_gt_point_dict = min_gt_point_dict
-        print(min_gt_point_dict)
 
     def _preprocess(self, db_infos):
         for name, min_num in self._min_gt_point_dict.items():

@@ -147,7 +147,6 @@ def prep_pointcloud(input_dict,
                 group_ids = group_ids[keep_mask]
         gt_boxes_mask = np.array(
             [n in class_names for n in gt_names], dtype=np.bool_)
-        db_sampler = None
         if db_sampler is not None:
             sampled_dict = db_sampler.sample_all(
                 root_path,
@@ -155,10 +154,7 @@ def prep_pointcloud(input_dict,
                 gt_names,
                 num_point_features,
                 random_crop,
-                gt_group_ids=group_ids,
-                rect=rect,
-                Trv2c=Trv2c,
-                P2=P2)
+                gt_group_ids=group_ids)
 
             if sampled_dict is not None:
                 sampled_gt_names = sampled_dict["gt_names"]
@@ -206,14 +202,14 @@ def prep_pointcloud(input_dict,
         gt_classes = np.array(
             [class_names.index(n) + 1 for n in gt_names], dtype=np.int32)
 
-        # gt_boxes, points = prep.random_flip(gt_boxes, points)
-        # gt_boxes, points = prep.global_rotation(
-        #     gt_boxes, points, rotation=global_rotation_noise)
-        # gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
-        #                                           *global_scaling_noise)
-        #
-        # # Global translation
-        # gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
+        gt_boxes, points = prep.random_flip(gt_boxes, points)
+        gt_boxes, points = prep.global_rotation(
+            gt_boxes, points, rotation=global_rotation_noise)
+        gt_boxes, points = prep.global_scaling_v2(gt_boxes, points,
+                                                  *global_scaling_noise)
+
+        # Global translation
+        gt_boxes, points = prep.global_translate(gt_boxes, points, global_loc_noise_std)
 
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
         mask = prep.filter_gt_box_outside_range(gt_boxes, bv_range)

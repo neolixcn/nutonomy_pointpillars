@@ -165,8 +165,10 @@ class DataBaseSamplerV2:
             for info in sampled:
                 s_points = np.fromfile(
                     str(pathlib.Path(root_path) / info["path"]),
-                    dtype=np.float64)
+                    dtype=np.float32)
+
                 s_points = s_points.reshape([-1, num_point_features])
+                s_points[:, 3] = 0
                 # if not add_rgb_to_points:
                 #     s_points = s_points[:, :4]
                 if "rot_transform" in info:
@@ -238,7 +240,6 @@ class DataBaseSamplerV2:
         num_sampled = len(sampled)
         gt_boxes_bv = box_np_ops.center_to_corner_box2d(
             gt_boxes[:, 0:2], gt_boxes[:, 3:5], gt_boxes[:, 6])
-
         sp_boxes = np.stack([i["box3d_lidar"] for i in sampled], axis=0)
 
         valid_mask = np.zeros([gt_boxes.shape[0]], dtype=np.bool_)

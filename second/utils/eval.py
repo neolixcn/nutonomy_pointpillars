@@ -172,7 +172,7 @@ def d3_box_overlap_part3(boxes, qboxes):
     return np.array(d3_overlap)
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def compute_statistics_jit(overlaps,
                            gt_datas,
                            dt_datas,
@@ -183,7 +183,14 @@ def compute_statistics_jit(overlaps,
                            min_overlap,
                            thresh=0,
                            compute_fp=False,
-                           compute_aos=False):
+                           compute_aos=False,
+                           fused_statistics=True,
+                           class_m=0,
+                           difficulty_l=0,
+                           overlap_k=0,
+                           pc_idx=0):
+
+    ##  delete the jit code "@numba.jit(nopython=True)", when want to save fn and fp
 
     det_size = dt_datas.shape[0]
     gt_size = gt_datas.shape[0]
@@ -246,6 +253,9 @@ def compute_statistics_jit(overlaps,
 
         if (valid_detection == NO_DETECTION) and ignored_gt[i] == 0:
             fn += 1
+            if (not fused_statistics) & (overlap_k == 1) & (difficulty_l == 0) & (metric == 1):
+                with open("fn.class_%d.overlap%d.txt" % (class_m, overlap_k), 'a') as fn_file:
+                    fn_file.write("pcd_idx:%d, box_id:%d" % (pc_idx, i) + "\n")
         elif ((valid_detection != NO_DETECTION)
               and (ignored_gt[i] == 1 or ignored_det[det_idx] == 1)):
             assigned_detection[det_idx] = True
@@ -268,6 +278,9 @@ def compute_statistics_jit(overlaps,
             if (not (assigned_detection[i] or ignored_det[i] == -1
                      or ignored_det[i] == 1 or ignored_threshold[i])):
                 fp += 1
+                if (not fused_statistics) & (overlap_k == 1) & (difficulty_l == 0) & (metric == 1):
+                    with open("fp.class_%d.overlap%d.txt" % (class_m, overlap_k), 'a') as fp_file:
+                        fp_file.write("pc_idx:%d, box_id:%d" % (pc_idx, i) + "\n")
                 dt_true.append(0)
                 pre_score.append(dt_scores[i])
         nstuff = 0
@@ -309,7 +322,7 @@ def get_split_parts(num, num_part):
         return [same_part] * num_part + [remain_num]
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def fused_compute_statistics(overlaps,
                              pr,
                              gt_nums,
@@ -324,6 +337,7 @@ def fused_compute_statistics(overlaps,
                              min_overlap,
                              thresholds,
                              compute_aos=False):
+    ## delete the jit code "@numba.jit(nopython=True)", when want to save fn and fp
     gt_num = 0
     dt_num = 0
     dc_num = 0
@@ -337,7 +351,8 @@ def fused_compute_statistics(overlaps,
             ignored_gt = ignored_gts[gt_num:gt_num + gt_nums[i]]
             ignored_det = ignored_dets[dt_num:dt_num + dt_nums[i]]
             dontcare = dontcares[dc_num:dc_num + dc_nums[i]]
-            tp, fp, fn, similarity, _, _, _ = compute_statistics_jit(
+
+            tp, fp, fn, similarity, _, __, ___ = compute_statistics_jit(
                 overlap,
                 gt_data,
                 dt_data,
@@ -566,7 +581,6 @@ def eval_class(gt_annos,
     }
     return ret_dict
 
-
 def eval_class_v3(gt_annos,
                   dt_annos,
                   current_classes,
@@ -574,7 +588,9 @@ def eval_class_v3(gt_annos,
                   metric,
                   min_overlaps,
                   compute_aos=False,
-                  num_parts=50):
+                  num_parts=50,
+                  save_fn_fp=False
+                  ):
     """Kitti eval. support 2d/bev/3d/aos eval. support 0.5:0.05:0.95 coco AP.
     Args:
         gt_annos: dict, must from get_label_annos() in kitti_common.py
@@ -586,13 +602,20 @@ def eval_class_v3(gt_annos,
             [[0.7, 0.5, 0.5], [0.7, 0.5, 0.5], [0.7, 0.5, 0.5]] 
             format: [metric, class]. choose one from matrix above.
         num_parts: int. a parameter for fast calculate algorithm
+        save_fn_fp: if save the fn and fp into data.
 
     Returns:
         dict of recall, precision and aos
     """
+    ## delete the jit code before compute_statistics_jit and fused_compute_statistics
     assert len(gt_annos) == len(dt_annos)
     num_examples = len(gt_annos)
     split_parts = get_split_parts(num_examples, num_parts)
+
+    if save_fn_fp:
+        fused_stat = False
+    else:
+        fused_stat = True
 
     rets = calculate_iou_partly(dt_annos, gt_annos, metric, num_parts)
     overlaps, parted_overlaps, total_dt_num, total_gt_num = rets
@@ -605,6 +628,7 @@ def eval_class_v3(gt_annos,
     recall = np.zeros(
         [num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
     aos = np.zeros([num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
+
     for m, current_class in enumerate(current_classes):
         for l, difficulty in enumerate(difficultys):
             rets = _prepare_data(gt_annos, dt_annos, current_class, difficulty)
@@ -618,8 +642,7 @@ def eval_class_v3(gt_annos,
                 dt_trues = []
                 dt_scoress = []
                 for i in range(len(gt_annos)):
-                    rets = compute_statistics_jit(
-                        overlaps[i],
+                    rets = compute_statistics_jit(overlaps[i],
                         gt_datas_list[i],
                         dt_datas_list[i],
                         ignored_gts[i],
@@ -628,7 +651,8 @@ def eval_class_v3(gt_annos,
                         metric,
                         min_overlap=min_overlap,
                         thresh=0.0,
-                        compute_fp=True)
+                        compute_fp=True,
+                        fused_statistics=fused_stat, class_m=m, difficulty_l=l, overlap_k=k, pc_idx=i)
                     tp, fp, fn, similarity, thresholds, dt_true, dt_scores = rets
                     tps.append(tp)
                     fps.append(fp)
@@ -697,8 +721,6 @@ def eval_class_v3(gt_annos,
             "recall": recall,
             "precision": precision,
             "orientation": aos,}
-    # print("recall", recall.shape)
-    # print("precision", precision.shape)
     return ret_dict
 
 
@@ -751,7 +773,7 @@ def do_eval_v2(gt_annos,
                         min_overlaps)
     mAP_bev = get_mAP_v2(ret["precision"])
     ret = eval_class_v3(gt_annos, dt_annos, current_classes, difficultys, 2,
-                        min_overlaps)
+                        min_overlaps, True)
 
     mAP_3d = get_mAP_v2(ret["precision"])
     return mAP_bbox, mAP_bev, mAP_3d, mAP_aos
