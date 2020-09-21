@@ -191,18 +191,6 @@ def _make_point_field(num_field):
 
 
 def gui(point, v_info, r_info, n0, n1, n2, n3, p0, p1, p2, p3):
-    # a = np.fromfile(point, dtype=np.float32, count=10)
-    # for i in range(100):
-    #     print(a[i])
-    #new_points = []
-    #with open(point, 'r') as f:
-    #   points_lines = f.readlines()[11:]
-    #   for point in points_lines:
-    #       b = point.strip().split(" ")
-    #       b = [float(b[0]), float(b[1]), float(b[2]), float(b[3])]
-    #       new_points.append(b)
-    #new_point_ls = np.array(new_points)
-
     new_point_ls = np.fromfile(point, dtype=np.float32).reshape([-1, 4])
 
     header = Header()

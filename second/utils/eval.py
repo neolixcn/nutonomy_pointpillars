@@ -770,7 +770,7 @@ def do_eval_v2(gt_annos,
     if compute_aos:
         mAP_aos = get_mAP_v2(ret["orientation"])
     ret = eval_class_v3(gt_annos, dt_annos, current_classes, difficultys, 1,
-                        min_overlaps)
+                        min_overlaps, save_fn_fp=True)
     mAP_bev = get_mAP_v2(ret["precision"])
     ret = eval_class_v3(gt_annos, dt_annos, current_classes, difficultys, 2,
                         min_overlaps, True)
