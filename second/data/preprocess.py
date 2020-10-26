@@ -42,7 +42,6 @@ def merge_second_batch(batch_list, _unused=False):
             ret[key] = np.stack(elems, axis=0)
     return ret
 
-
 def prep_pointcloud(input_dict,
                     root_path,
                     voxel_generator,
