@@ -76,8 +76,10 @@ def create_kitti_info_file(data_path,
     # val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_second.txt")
     # trainval_img_ids = _read_imageset_file("./data/ImageSets/trainval_ids_second.txt")
     # test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
-    train_img_ids = _read_imageset_file("./data/ImageSets/train_ids_shanghaipuruan.txt")
-    val_img_ids = _read_imageset_file("./data/ImageSets/val_ids_shanghaipuruan.txt")
+    # train_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_2614_back_lidar/train_back_lidar_2614.txt")
+    # val_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_2614_back_lidar/val_back_lidar_2614.txt")
+    train_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/train.txt")
+    val_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/val.txt")
 
     print("Generate info. this may take several minutes.")
     if save_path is None:
@@ -94,7 +96,7 @@ def create_kitti_info_file(data_path,
     # f = open(save_path / 'neolix_infos_train.pkl', 'rb')
     # kitti_infos_train = pickle.load(f)
     _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
-    filename = save_path / 'shanghaipuruan_infos_train.pkl'
+    filename = save_path / 'infos_train.pkl'
 
     # filename = save_path / 'neolix_kitti16_infos_train.pkl'
     print(f"Kitti info train file is saved to {filename}")
@@ -109,7 +111,7 @@ def create_kitti_info_file(data_path,
         relative_path=relative_path)
     _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
     # filename = save_path / 'neolix_kitti16_infos_val.pkl'
-    filename = save_path / 'shanghaipuruan_infos_val.pkl'
+    filename = save_path / 'infos_val.pkl'
 
     print(f"Kitti info val file is saved to {filename}")
     with open(filename, 'wb') as f:
@@ -129,7 +131,7 @@ def create_kitti_info_file(data_path,
             pickle.dump(kitti_infos_trainval, f)
     """
     # filename = save_path / 'neolix_kitti16_infos_trainval.pkl'
-    filename = save_path / 'shanghaipuruan_infos_trainval.pkl'
+    filename = save_path / 'infos_trainval.pkl'
 
     print(f"Kitti info trainval file is saved to {filename}")
     with open(filename, 'wb') as f:
@@ -221,13 +223,13 @@ def create_groundtruth_database(data_path,
                                 coors_range=None):
     root_path = pathlib.Path(data_path)
     if info_path is None:
-        info_path = root_path / 'shanghaipuruan_infos_train.pkl'
+        info_path = root_path / 'infos_train.pkl'
     if database_save_path is None:
         database_save_path = root_path / 'gt_database'
     else:
         database_save_path = pathlib.Path(database_save_path)
     if db_info_save_path is None:
-        db_info_save_path = root_path / "shanghaipuruan_dbinfos_train.pkl"
+        db_info_save_path = root_path / "dbinfos_train.pkl"
     database_save_path.mkdir(parents=True, exist_ok=True)
     with open(info_path, 'rb') as f:
         kitti_infos = pickle.load(f)
@@ -410,3 +412,4 @@ if __name__ == '__main__':
 #         unmatched_threshold: 0.35
 #     }
 # }
+

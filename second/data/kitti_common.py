@@ -234,6 +234,33 @@ def get_class_to_label_map():
         'DontCare': 8,
         'Others': 9,
     }
+    # class_to_label = {
+    #     'Vehicle': 0,
+    #     'Pedestrian': 1,
+    #     'Cyclist': 2,
+    #     'Unknown': 3,
+    #     'Barrier': 4,
+    #     'Tricycle': 5,
+    #     'Bicycles': 6,
+    #     'DontCare': 7
+    # }
+    # class_to_label = {
+    #     'adult': 0,
+    #     'animal': 1,
+    #     'barrier': 2,
+    #     'bicycle': 3,
+    #     'bicycles': 4,
+    #     'bus': 5,
+    #     'car': 6,
+    #     'child': 7,
+    #     'cyclist': 8,
+    #     'dontcare': 9,
+    #     'motorcycle': 10,
+    #     'motorcyclist': 11,
+    #     'tricycle': 12,
+    #     'truck': 13,
+    #     'DontCare': 14
+    # }
     return class_to_label
 
 def get_classes():

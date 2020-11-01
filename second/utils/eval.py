@@ -667,8 +667,8 @@ def eval_class_v3(gt_annos,
                 dt_trues = np.array(dt_trues)
                 dt_scoress = np.array(dt_scoress)
                 if l == 0:
-                    np.save("%d.%d.%d_true" % (m, l, k), dt_trues)
-                    np.save("%d.%d.%d_score" % (m, l, k), dt_scoress)
+                    np.save("metric_%d.%d.%d.%d_true" % (metric, m, l, k), dt_trues)
+                    np.save("metric_%d.%d.%d.%d_score" % (metric, m, l, k), dt_scoress)
                 print("m:", m, " l:", l, " k:", k)
                 print("tps.sum()", tps.sum())
                 print("fps.sum()", fps.sum())

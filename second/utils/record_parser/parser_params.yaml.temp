@@ -1,0 +1,23 @@
+records:
+    filepath: /home/caros/mnt/merge1_record/ 
+
+parse: camera
+# use one of the following options or add more:
+  # lidar
+  # radar
+  # camera
+
+lidar:     # for velodyne vls-128 lidar
+  channel_name: /sensor/velodyne16/all/compensator/PointCloud2
+  out_folder_extn: _save_lidar_compen_compensator_pcd
+  timestamp_file_extn: _save_lidar_compen_lidar_vls16_timestamp.txt
+
+radar:     # for ARS-408 radar mounted in front
+  channel_name: /apollo/sensor/radar/front
+  out_folder_extn: _radar_conti408_front
+  timestamp_file_extn: _radar_conti408_front_timestamp.txt
+
+camera:   # for 6mm camera mounted in front
+  channel_name: /sensor/camera/front_3mm/image
+  out_folder_extn: _save_3mm_png
+  timestamp_file_extn: _save_3mm_timestamp.txt

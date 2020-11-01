@@ -1,0 +1,29 @@
+records:
+        #filepath: /home/caros/mnt/10-23_S/
+        #filepath: /home/caros/mnt/10-26/
+        filepath: /home/caros/mnt/songhongli/
+
+parse: lidar
+# use one of the following options or add more:
+  # lidar
+  # radar
+  # camera
+
+lidar:     # for velodyne vls-128 lidar
+#channel_name: /sensor/velodyne16/all/compensator/PointCloud2
+#channel_name: /sensor/velodyne16/right/PointCloud2
+  channel_name: /sensor/velodyne16/left/PointCloud2
+  #channel_name: /sensor/velodyne16/left/PointCloud2
+  out_folder_extn: _songhongli_left_lidar_compensator_pcd
+  timestamp_file_extn: _songhongli_left_lidar_timestamp.txt
+
+radar:     # for ARS-408 radar mounted in front
+  channel_name: /apollo/sensor/radar/front
+  out_folder_extn: _radar_conti408_front
+  timestamp_file_extn: _radar_conti408_front_timestamp.txt
+
+camera:   # for 6mm camera mounted in front
+  channel_name: /sensor/camera/smartereye/image
+  #channel_name: /sensor/camera/front_3mm/image
+  out_folder_extn: _songhongli_png
+  timestamp_file_extn: _songhongli_png_timestamp.txt
