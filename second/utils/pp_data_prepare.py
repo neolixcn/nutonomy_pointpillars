@@ -658,6 +658,15 @@ def stat_label(l_path):
 
 
 
+def stat_bins(bin_path):
+    bin_ls = os.listdir(bin_path)
+    points_num = []
+    for b_f in bin_ls:
+        p_num = np.fromfile(bin_path + b_f, dtype=np.float32).reshape(-1, 4).shape[0]
+        points_num.append(p_num)
+    print(points_num)
+    avg_points = np.mean(np.array(points_num))
+    print("avg_points", avg_points)
 
 
 
