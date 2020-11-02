@@ -222,18 +222,18 @@ def label_str_to_int(labels, remove_dontcare=True, dtype=np.int32):
     return ret
 
 def get_class_to_label_map():
-    class_to_label = {
-        'Vehicle': 0,
-        'Pedestrian': 1,
-        'Cyclist': 2,
-        'Unknown': 3,
-        'Bicycle_no_person': 4,
-        'Bicycles':5,
-        'Others_moving': 6,
-        'Others_stationary': 7,
-        'DontCare': 8,
-        'Others': 9,
-    }
+    # class_to_label = {
+    #     'Vehicle': 0,
+    #     'Pedestrian': 1,
+    #     'Cyclist': 2,
+    #     'Unknown': 3,
+    #     'Bicycle_no_person': 4,
+    #     'Bicycles':5,
+    #     'Others_moving': 6,
+    #     'Others_stationary': 7,
+    #     'DontCare': 8,
+    #     'Others': 9,
+    # }
     # class_to_label = {
     #     'Vehicle': 0,
     #     'Pedestrian': 1,
@@ -244,6 +244,17 @@ def get_class_to_label_map():
     #     'Bicycles': 6,
     #     'DontCare': 7
     # }
+    class_to_label = {
+        'Pedestrian': 0,
+        'Vehicle': 1,
+        'Cyclist': 2,
+        'Unknown': 3,
+        'Tricycle': 4,
+        'Bicycles': 5,
+        'Barrier': 6,
+        'Bicycle': 7,
+        'DontCare': 8
+    }
     # class_to_label = {
     #     'adult': 0,
     #     'animal': 1,

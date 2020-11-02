@@ -586,6 +586,8 @@ def change_chaoyang_park_label_into_4cls(raw_label_path, new_label_path):
                 new_rs_ls.append(" ".join(rs_ls))
             new_content = "".join(new_rs_ls)
         with open(new_label_path + label_f, 'w') as f2:
+
+
             f2.write(new_content)
 
 
