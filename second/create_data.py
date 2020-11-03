@@ -78,6 +78,8 @@ def create_kitti_info_file(data_path,
     # test_img_ids = _read_imageset_file("./data/ImageSets/test.txt")
     # train_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_2614_back_lidar/train_back_lidar_2614.txt")
     # val_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_2614_back_lidar/val_back_lidar_2614.txt")
+    # train_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/train.txt")
+    # val_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/val.txt")
     train_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/train.txt")
     val_img_ids = _read_imageset_file("./data/ImageSets/shanghaipuruan_5976/val.txt")
 

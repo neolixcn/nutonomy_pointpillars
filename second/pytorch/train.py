@@ -557,7 +557,7 @@ def _predict_kitti_to_file(net,
         with open(result_file, 'w') as f:
             f.write(result_str)
 
-dataid = -1
+dataid = 0
 
 def predict_kitti_to_anno(net,
                           example,

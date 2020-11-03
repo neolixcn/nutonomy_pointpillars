@@ -29,6 +29,51 @@ def pcds2bins(pcd_p, bin_p):
         bp = bin_p + pcd.strip('pcd') + 'bin'
         pcd2bin(pp, bp)
 
+
+def correct_label(raw_label_path, new_label_path):
+    label_ls = os.listdir(raw_label_path)
+    label_ls.sort()
+    for label_f in label_ls:
+        label_str_ls = []
+        label_name = raw_label_path + label_f
+        with open(label_name, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line_ls = line.split(" ")
+                if line_ls[0] == "0":
+                    line_ls[0] = "Pedestrian"
+                elif line_ls[0] == "1":
+                    line_ls[0] = "Vehicle"
+                elif line_ls[0] == "2":
+                    line_ls[0] = "Cyclist"
+                elif line_ls[0] == "3":
+                    line_ls[0] = "Unknown"
+                label_str_ls.append(" ".join(line_ls))
+        with open(new_label_path + label_f, 'w') as f1:
+            f1.write("".join(label_str_ls))
+
+
+def bin2pcd(bp, pp):
+    """
+    transform .bin ino .pcd
+    """
+    points = np.fromfile(bp, dtype=np.float32).reshape(-1, 4)
+    pcd_ls = ["# .PCD v0.7 - Point Cloud Data file format", "VERSION 0.7", "FIELDS x y z rgb", "SIZE 4 4 4 4",
+              "TYPE F F F U", "COUNT 1 1 1 1", "WIDTH 28800", "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS 28800", "DATA ascii"]
+    for i in range(points.shape[0]):
+        pcd_ls.append(" ".join([str(points[i][0]), str(points[i][1]), str(points[i][2]), str(points[i][3])]))
+    with open(pp, 'w') as f:
+        f.write("\n".join(pcd_ls))
+
+
+
+def bins2pcds(bin_p, pcd_p):
+    for bi in os.listdir(bin_p):
+        bp = bin_p + bi
+        pp = pcd_p + bi.strip('bin') + 'pcd'
+        bin2pcd(bp, pp)
+
+
 def json2txt(jp, tp):
     """
     transform .json into .txt
@@ -169,6 +214,7 @@ def rename_file(img_path, lidar_path):
         os.rename(raw_img_name, new_img_name)
         os.rename(raw_lidar_name, new_lidar_name)
 
+
 def rename_one_folder(file_path):
     fl_ls = os.listdir(file_path)
     fl_ls.sort()
@@ -302,45 +348,77 @@ def copy_4pcds_from_img(img_p, left_raw, right_raw, back_raw, compen_raw,
                 back_lidar_file_name.append(line.strip())
     img_file_name.sort()
     ignore_img_ls = []
-    for i in range(len(img_file_name)):
-        name_ls = img_file_name[i].split("_")
-        new_str = "pcd" + "_" + name_ls[1] + "_" + name_ls[2][0] + "*"
-        optinal_right_data = glob.glob(right_raw + new_str)
-        if len(optinal_right_data) == 1:
-            flag_right = True
-        else:
-            flag_right = False
+    if not parser_with_5ms:
+        left_lidar_file = os.listdir(left_raw)
+        left_lidar_file.sort()
+        right_lidar_file = os.listdir(right_raw)
+        right_lidar_file.sort()
+        back_lidar_file = os.listdir(back_raw)
+        back_lidar_file.sort()
+        compen_lidar_file = os.listdir(compen_raw)
+        compen_lidar_file.sort()
+        for img_file in img_file_name:
+            for left_lidar in left_lidar_file:
+                left_flag = time_stamp_compare(img_file, 1, 2, left_lidar, 1, 2)
+                if left_flag:
+                    for right_lidar in right_lidar_file:
+                        right_flag = time_stamp_compare(img_file, 1, 2, right_lidar, 1, 2)
+                        if right_flag:
+                            for back_lidar in back_lidar_file:
+                                back_flag = time_stamp_compare(img_file, 1, 2, back_lidar, 1, 2)
+                                if back_flag:
+                                    for compen_lidar in compen_lidar_file:
+                                        compen_flag = time_stamp_compare(img_file, 1, 2, compen_lidar, 1, 2)
+                                        if compen_flag:
+                                            shutil.copy(left_lidar, left_new)
+                                            shutil.copy(right_lidar, right_new)
+                                            shutil.copy(back_lidar, back_new)
+                                            shutil.copy(compen_lidar, compen_new)
+                                            continue
+                                    continue
+                            continue
+                    continue
 
-        optinal_left_data = glob.glob(left_raw + new_str)
-        if len(optinal_left_data) == 1:
-            flag_left = True
+    else:
+        for i in range(len(img_file_name)):
+            name_ls = img_file_name[i].split("_")
+            new_str = "pcd" + "_" + name_ls[1] + "_" + name_ls[2][0] + "*"
+            optinal_right_data = glob.glob(right_raw + new_str)
+            if len(optinal_right_data) == 1:
+                flag_right = True
+            else:
+                flag_right = False
 
-        else:
-            flag_left = False
+            optinal_left_data = glob.glob(left_raw + new_str)
+            if len(optinal_left_data) == 1:
+                flag_left = True
 
-        optinal_back_data = glob.glob(back_raw + new_str)
-        if len(optinal_back_data) == 1:
-            flag_back = True
-        else:
-            flag_back = False
+            else:
+                flag_left = False
 
-        optinal_compen_data = glob.glob(compen_raw + new_str)
-        if len(optinal_compen_data) == 1:
-            flag_compen = True
-        else:
-            flag_compen = False
+            optinal_back_data = glob.glob(back_raw + new_str)
+            if len(optinal_back_data) == 1:
+                flag_back = True
+            else:
+                flag_back = False
 
-        if flag_compen & flag_left & flag_back & flag_right:
-            shutil.copy(optinal_left_data[0], left_new)
-            shutil.copy(optinal_right_data[0], right_new)
-            shutil.copy(optinal_back_data[0], back_new)
-            shutil.copy(optinal_compen_data[0], compen_new)
-        else:
-            print("image %s doesn't have the matched lidar!" % img_file_name[i])
-            ignore_img_ls.append(img_file_name[i])
-    with open("ignore_img.txt", 'a') as f_imgae:
-        s = "\n".join([img for img in ignore_img_ls])
-        f_imgae.write(s)
+            optinal_compen_data = glob.glob(compen_raw + new_str)
+            if len(optinal_compen_data) == 1:
+                flag_compen = True
+            else:
+                flag_compen = False
+
+            if flag_compen & flag_left & flag_back & flag_right:
+                shutil.copy(optinal_left_data[0], left_new)
+                shutil.copy(optinal_right_data[0], right_new)
+                shutil.copy(optinal_back_data[0], back_new)
+                shutil.copy(optinal_compen_data[0], compen_new)
+            else:
+                print("image %s doesn't have the matched lidar!" % img_file_name[i])
+                ignore_img_ls.append(img_file_name[i])
+        with open("ignore_img.txt", 'a') as f_imgae:
+            s = "\n".join([img for img in ignore_img_ls])
+            f_imgae.write(s)
 
 
 def time_stamp_compare(file_1, s_1, ms_1, file_2, s_2, ms_2):
