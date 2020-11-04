@@ -17,10 +17,13 @@ def pcd2bin(pp, bp):
         raw_rs = f.readlines()[11:]
     for p_line in raw_rs:
         p_ls = p_line.strip().split(" ")
-        if (p_ls[0] != "nan") | (p_ls[1] != "nan") | (p_ls[2] != "nan"):
-            # rs_ls.append([float(i) for i in p_ls[:3]] + [float(p_ls[3]) / 255])
-            rs_ls.append([float(i) for i in p_line.strip().split(" ")[:3]] + [0.0])
-            # rs_ls.append([float(i) for i in p_line.strip().split(" ")[:3]])
+        if len(p_ls) == 4:
+            if (p_ls[0] != "nan") | (p_ls[1] != "nan") | (p_ls[2] != "nan"):
+                # rs_ls.append([float(i) for i in p_ls[:3]] + [float(p_ls[3]) / 255])
+                rs_ls.append([float(i) for i in p_line.strip().split(" ")[:3]] + [0.0])
+                # rs_ls.append([float(i) for i in p_line.strip().split(" ")[:3]])
+        else:
+            print(pp)
     np.array(rs_ls).astype(np.float32).tofile(bp)
 
 def pcds2bins(pcd_p, bin_p):
@@ -53,15 +56,59 @@ def correct_label(raw_label_path, new_label_path):
             f1.write("".join(label_str_ls))
 
 
+def lidar_segmentation_points(bins_path, one_gt_pcd):
+    """
+    genarte on frame segmentation points from some bins
+    :param gt_pcd_path:
+    :param one_gt_pcd:
+    :return:
+    """
+    bin_ls = os.listdir(bins_path)
+    bin_ls.sort()
+    pc_ls = []
+    for bi in bin_ls:
+        pc = np.fromfile(bins_path+bi, dtype=np.float32).reshape(-1, 4)
+        pc_label = bi.split("_")[1]
+        if pc_label == 'Pedestrian':
+            pc_label = '0'
+        elif pc_label == 'Vehicle':
+            pc_label = '1'
+        elif pc_label == 'Cyclist':
+            pc_label = '2'
+        elif pc_label == 'Unknown':
+            pc_label = '3'
+        for i in range(pc.shape[0]):
+            pc_ls.append(" ".join([str(pc[i][0]), str(pc[i][1]), str(pc[i][2]), pc_label]))
+    file_header = ["# .PCD v0.7 - Point Cloud Data file format", "VERSION 0.7", "FIELDS x y z rgb", "SIZE 4 4 4 4",
+              "TYPE F F F U", "COUNT 1 1 1 1", "WIDTH %d" % len(pc_ls), "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS %d" % len(pc_ls), "DATA ascii"]
+    final_pc = file_header + pc_ls
+    print(final_pc)
+    with open(one_gt_pcd, 'w') as f:
+        f.write("\n".join(final_pc))
+
+
+
+
 def bin2pcd(bp, pp):
     """
     transform .bin ino .pcd
     """
     points = np.fromfile(bp, dtype=np.float32).reshape(-1, 4)
     pcd_ls = ["# .PCD v0.7 - Point Cloud Data file format", "VERSION 0.7", "FIELDS x y z rgb", "SIZE 4 4 4 4",
-              "TYPE F F F U", "COUNT 1 1 1 1", "WIDTH 28800", "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS 28800", "DATA ascii"]
+              "TYPE F F F U", "COUNT 1 1 1 1", "WIDTH %d" % points.shape[0], "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS %d" % points.shape[0], "DATA ascii"]
+    pcd_label = bp.split("/")[-1].split("_")[1]
+    print(pcd_label)
+    if pcd_label == 'Pedestrian':
+        pcd_label = '0'
+    elif pcd_label == 'Vehicle':
+        pcd_label = '1'
+    elif pcd_label == 'Cyclist':
+        pcd_label = '2'
+    elif pcd_label == 'Unknown':
+        pcd_label = '3'
+
     for i in range(points.shape[0]):
-        pcd_ls.append(" ".join([str(points[i][0]), str(points[i][1]), str(points[i][2]), str(points[i][3])]))
+        pcd_ls.append(" ".join([str(points[i][0]), str(points[i][1]), str(points[i][2]), pcd_label]))
     with open(pp, 'w') as f:
         f.write("\n".join(pcd_ls))
 
@@ -213,6 +260,16 @@ def rename_file(img_path, lidar_path):
         new_lidar_name = lidar_path + "%06d.pcd" % (i + 3026)
         os.rename(raw_img_name, new_img_name)
         os.rename(raw_lidar_name, new_lidar_name)
+
+
+def rename_ordered_files(raw_file, new_file):
+    file_ls = os.listdir(raw_file)
+    for f in file_ls:
+        file_name = raw_file + f
+        new_file_name = new_file + "%06d.bin" % int(f.split(".")[0])
+        print("file_name", file_name)
+        print("new_file", new_file_name)
+        os.rename(file_name, new_file_name)
 
 
 def rename_one_folder(file_path):

@@ -898,15 +898,15 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
     #     12: 'truck',
     # }
     class_to_name = {
-        'Pedestrian': 0,
-        'Vehicle': 1,
-        'Cyclist': 2,
-        'Unknown': 3,
-        'Tricycle': 4,
-        'Bicycles': 5,
-        'Barrier': 6,
-        'Bicycle': 7,
-        'DontCare': 8
+        0:'Pedestrian',
+        1: 'Vehicle',
+        2: 'Cyclist',
+        3: 'Unknown',
+        4: 'Tricycle',
+        5: 'Bicycles',
+        6: 'Barrier',
+        7: 'Bicycle',
+        8: 'DontCare'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
