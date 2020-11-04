@@ -244,6 +244,6 @@ eval_input_reader: {
   num_workers: 1
   anchor_area_threshold: 1
   remove_environment: false
-  kitti_info_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614/back_lidar_infos_val.pkl"
-  kitti_root_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614/"
+  kitti_info_path: "/nfs/nas/datasets/songhongli/pp_baidu_second/ppsecond_infos_train.pkl"
+  kitti_root_path: "/nfs/nas/datasets/songhongli/pp_baidu_second/"
 }

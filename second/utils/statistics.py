@@ -32,8 +32,6 @@ def count_labels(l_path, cls):
 def visu_class(class_path):
     plt.figure(figsize=(10, 10), dpi=80)
     N = 14
-    # class_ls = ["adult", "animal", "barrier", "bicycle", "bicycles", "bus", "car", "child", "cyclist", "dontcare",
-    #             "motorcycle", "motorcyclist", "tricycle", "truck"]
     class_ls = ["car", "barrier", "adult", "bicycles", "motorcycle", "bicycle", "motorcyclist", "cyclist", "bus",
                 "truck", "dontcare", "child", "tricycle", "animal"]
     objects_num = []

@@ -289,7 +289,7 @@ def create_groundtruth_database(data_path,
             filepath = database_save_path / filename
             gt_points = points[point_indices[:, i]]
 
-            gt_points[:, :3] -= rbbox_lidar[i, :3]
+            # gt_points[:, :3] -= rbbox_lidar[i, :3]
             with open(filepath, 'w') as f:
                 gt_points.tofile(f)
             if names[i] in used_classes:

@@ -674,7 +674,7 @@ def predict_kitti_to_anno(net,
             global dataid
             dataid += 1
             # print("content", content)
-            with open("./pre_test/%06d.txt" % dataid, 'w') as f:
+            with open("./pre_test_office/%06d.txt" % dataid, 'w') as f:
                 f.write(content)
             if num_example != 0:
                 anno = {n: np.stack(v) for n, v in anno.items()}
@@ -807,7 +807,7 @@ def evaluate(config_path,
                 dt_annos += predict_kitti_to_anno(
                     net, example_tuple, class_names, center_limit_range,
                     model_cfg.lidar_input, global_set)
-                with open(result_path_step / "result.pkl", 'wb') as f:
+                with open(result_path_step / "result_office.pkl", 'wb') as f:
                     pickle.dump(dt_annos, f)
 
             else:
