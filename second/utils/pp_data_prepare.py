@@ -94,21 +94,21 @@ def bin2pcd(bp, pp):
     transform .bin ino .pcd
     """
     points = np.fromfile(bp, dtype=np.float32).reshape(-1, 4)
-    pcd_ls = ["# .PCD v0.7 - Point Cloud Data file format", "VERSION 0.7", "FIELDS x y z rgb", "SIZE 4 4 4 4",
-              "TYPE F F F U", "COUNT 1 1 1 1", "WIDTH %d" % points.shape[0], "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS %d" % points.shape[0], "DATA ascii"]
-    pcd_label = bp.split("/")[-1].split("_")[1]
-    print(pcd_label)
-    if pcd_label == 'Pedestrian':
-        pcd_label = '0'
-    elif pcd_label == 'Vehicle':
-        pcd_label = '1'
-    elif pcd_label == 'Cyclist':
-        pcd_label = '2'
-    elif pcd_label == 'Unknown':
-        pcd_label = '3'
+    pcd_ls = ["# .PCD v0.7 - Point Cloud Data file format", "VERSION 0.7", "FIELDS x y z intensity", "SIZE 4 4 4 4",
+              "TYPE F F F F", "COUNT 1 1 1 1", "WIDTH %d" % points.shape[0], "HEIGHT 1", "VIEWPOINT 0 0 0 1 0 0 0", "POINTS %d" % points.shape[0], "DATA ascii"]
+    # pcd_label = bp.split("/")[-1].split("_")[1]
+    # print(pcd_label)
+    # if pcd_label == 'Pedestrian':
+    #     pcd_label = '0'
+    # elif pcd_label == 'Vehicle':
+    #     pcd_label = '1'
+    # elif pcd_label == 'Cyclist':
+    #     pcd_label = '2'
+    # elif pcd_label == 'Unknown':
+    #     pcd_label = '3'
 
     for i in range(points.shape[0]):
-        pcd_ls.append(" ".join([str(points[i][0]), str(points[i][1]), str(points[i][2]), pcd_label]))
+        pcd_ls.append(" ".join([str(points[i][0]), str(points[i][1]), str(points[i][2]), "0.0"]))
     with open(pp, 'w') as f:
         f.write("\n".join(pcd_ls))
 

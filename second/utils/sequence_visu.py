@@ -123,9 +123,7 @@ def publish_test(np_p_ranged, frame_id):
     cloud = np.stack((x, y, z, i))
     # point cloud segments
     # 4 PointFields as channel description
-    msg_segment = pc2.create_cloud(header=header,
-									fields=_make_point_field(4),
-									points=cloud.T)
+    msg_segment = pc2.create_cloud(header=header, fields=_make_point_field(4), points=cloud.T)
     #  publish to /velodyne_points_modified
     point_pub.publish(msg_segment) #  DEBUG
 
@@ -155,6 +153,7 @@ def hv_in_range(x, y, z, fov, fov_type='h'):
 		return np.logical_and(np.arctan2(z, d) < (fov[1] * np.pi / 180), np.arctan2(z, d) > (fov[0] * np.pi / 180))
 	else:
 		raise NameError("fov type must be set between 'h' and 'v' ")
+
 
 def _make_point_field(num_field):
     msg_pf1 = pc2.PointField()
@@ -193,19 +192,30 @@ def _make_point_field(num_field):
     return [msg_pf1, msg_pf2, msg_pf3, msg_pf4, msg_pf5]
 
 
-def gui(point, label, pre_rs, img_f):
-    # a = np.fromfile(point, dtype=np.float32, count=10)
-    # for i in range(100):
-    #     print(a[i])
-    # new_points = []
-    # with open("/home/shl/Downloads/pcd_1.pcd", 'r') as f:
-    #   points_lines = f.readlines()[11:]
-    #   for point in points_lines:
-    #       b = point.strip().split(" ")
-    #       b = [float(b[0]), float(b[1]), float(b[2]), float(b[3])]
-    #       new_points.append(b)
-    # new_point_ls = np.array(new_points)
+def generate_box_from_points(points_ls):
+    """
+    generate 3d box from 8 points
+    :param points_ls:
+    p: [x, y, z]
+    :return: 3d box [x, y ,z, l, w, h, theta]
+    """
+    p1, p2, p3, p4, p5, p6, p7, p8 = points_ls
+    xmean = (p1[0] + p2[0] + p3[0] + p4[0]) / 4
+    ymean = (p1[1] + p2[1] + p3[1] + p4[1]) / 4
+    zmean = p5[2]
 
+    l = np.sqrt((p1[0] - p2[0]) ^ 2 + (p1[1] - p2[1]) ^ 2)
+    w = np.sqrt((p1[0] - p4[0]) ^ 2 + (p1[1] - p4[1]) ^ 2)
+    h = abs(p5[2] - p1[2])
+
+    x_mean_12 = (p1[0] + p2[0]) / 2
+    y_mean_12 = (p1[1] + p2[1]) / 2
+    theta = np.arctan2(y_mean_12, x_mean_12)
+    box3d = np.array([xmean, ymean, zmean, l, w, h, -np.pi-theta])
+    return box3d
+
+
+def gui(point, label, img_f):
     new_point_ls = np.fromfile(point, dtype=np.float32).reshape([-1, 4])
 
     header = Header()
@@ -253,34 +263,6 @@ def gui(point, label, pre_rs, img_f):
     #                "motorcycle": 10, "motorcyclist": 11, "tricycle": 12, "truck": 13}
     classes_value = {'Car':0, 'Others_stationary':1, 'Non_vehicle':2, 'Vehicle':3, 'Others':4, 'Pedestrian':5, 'Others_moving':6, 'Cyclist':7}
 
-    # msg_gt_box1 = BoundingBox()
-    # msg_gt_box1.header = header
-    # msg_gt_box1.pose.position.x = -0.306794
-    # msg_gt_box1.pose.position.y = 5.69826
-    # msg_gt_box1.pose.position.z = 0.367946
-    # msg_gt_box1.pose.orientation.x = 0
-    # msg_gt_box1.pose.orientation.y = 0
-    # msg_gt_box1.pose.orientation.z = -0.7
-    # msg_gt_box1.pose.orientation.w = -0.7
-    # msg_gt_box1.dimensions.x = 0.5
-    # msg_gt_box1.dimensions.y = 0.5
-    # msg_gt_box1.dimensions.z = 0.5
-    # msg_gt_bboxes.boxes.append(msg_gt_box1)
-    #
-    # msg_gt_box2 = BoundingBox()
-    # msg_gt_box2.header = header
-    # msg_gt_box2.pose.position.x = -0.327481
-    # msg_gt_box2.pose.position.y = 3.42257
-    # msg_gt_box2.pose.position.z = 0.392756
-    # msg_gt_box2.pose.orientation.x = 0
-    # msg_gt_box2.pose.orientation.y = 0
-    # msg_gt_box2.pose.orientation.z = -0.7
-    # msg_gt_box2.pose.orientation.w = -0.7
-    # msg_gt_box2.dimensions.x = 0.5
-    # msg_gt_box2.dimensions.y = 0.5
-    # msg_gt_box2.dimensions.z = 0.5
-    # msg_gt_bboxes.boxes.append(msg_gt_box2)
-
     if labels_ls is not None:
         for b in labels_ls:
             b = b.strip().split(" ")
@@ -306,70 +288,11 @@ def gui(point, label, pre_rs, img_f):
             msg_gt_box.dimensions.z = b[8]
             msg_gt_box.label = int(b[0])
             msg_gt_bboxes.boxes.append(msg_gt_box)
-    with open(pre_rs, 'r') as f_pre:
-        pre_ls = f_pre.readlines()
-    if pre_ls is not None:
-        for b in pre_ls:
-            b = b.strip().split(" ")
-            msg_pred_box = BoundingBox()
-            msg_pred_box.header = header
-            # b[0] = classes_value[b[0]]
-            # b[0] = 0
-            # b[0] = int(b[0]) + 5
-            b[1:] = np.array(b[1:]).astype(np.float32)
-            # b = np.array(b).astype(np.float32)
-            # camera to lidar: x=z; y=-x; z=-y; az = pi/2 - ay
-            msg_pred_box.pose.position.x = b[11]
-            msg_pred_box.pose.position.y = b[12]
-            msg_pred_box.pose.position.z = b[13] + b[8] / 2
-            q = quaternion_from_euler(0, 0, -np.pi/2-b[14])
-            msg_pred_box.pose.orientation.x = q[0]
-            msg_pred_box.pose.orientation.y = q[1]
-            msg_pred_box.pose.orientation.z = q[2]
-            msg_pred_box.pose.orientation.w = q[3]
-
-            msg_pred_box.dimensions.x = b[10]
-            msg_pred_box.dimensions.y = b[9]
-            msg_pred_box.dimensions.z = b[8]
-            msg_pred_box.label = int(b[0]) + 6
-            msg_pred_bboxes.boxes.append(msg_pred_box)
-            # if int(b[0]) == 0:
-            #     print("type: Ped")
-            #     car_bboxes.boxes.append(msg_pred_box)
-            # elif int(b[0]) == 1:
-            #     print("type: Car")
-            #     ped_bboxes.boxes.append(msg_pred_box)
-            # elif int(b[0]) == 2:
-            #     print("type: Cyc")
-            #     cyc_bboxes.boxes.append(msg_pred_box)
-            # elif int(b[0]) == 3:
-            #     print("type: Unk")
-            #     unk_bboxes.boxes.append(msg_pred_box)
-            msg_track_picto = Pictogram()
-            msg_track_picto.header = header
-            msg_track_picto.mode = msg_track_picto.STRING_MODE
-            msg_track_picto.pose.position.x = b[11]
-            msg_track_picto.pose.position.y = b[12]
-            msg_track_picto.pose.position.z = b[13] + b[8] / 2
-            msg_track_picto.pose.orientation.x = 0
-            msg_track_picto.pose.orientation.y = 0
-            msg_track_picto.pose.orientation.z = -0.7
-            msg_track_picto.pose.orientation.w = -0.7
-            msg_track_picto.size = 3
-            msg_track_picto.color.a, msg_track_picto.color.r, msg_track_picto.color.g, msg_track_picto.color.b = 1, 1, 0, 0
-            msg_track_picto.character = str(b[0])
-            track_picarr.pictograms.append(msg_track_picto)
-
 
     publish_test(new_point_ls, 'pandar')
     gt_pub.publish(msg_gt_bboxes)
-    pred_pub.publish(msg_pred_bboxes)
-    track_pub.publish(track_picarr)
     img_pub.publish(img_msg)
-    # car_pub.publish(car_bboxes)
-    # ped_pub.publish(ped_bboxes)
-    # cyc_pub.publish(cyc_bboxes)
-    # unk_pub.publish(unk_bboxes)
+
     
 def count_label(l_path):
     classes = set()
