@@ -320,7 +320,7 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     # print("velodyne_path", v_path)
     # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
     # jiashan_rootpath = "/nfs/nas/datasets/songhongli/neolix_shanghai_1924/training/velodyne/"
-    jiashan_rootpath = "/nfs/nas/datasets/group_location/lidar_data_to_process/office_bins/"
+    jiashan_rootpath = "/home/songhongli/1106_bins/"
     fname_ls = os.listdir(jiashan_rootpath)
     fname_ls.sort()
     global data_id

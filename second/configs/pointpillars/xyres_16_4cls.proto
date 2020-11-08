@@ -61,6 +61,7 @@ model: {
     nms_pre_max_size: 1000
     nms_post_max_size: 300
     nms_score_threshold: 0.2#0.05#0.05
+    nms_score_threshold: 0.2#0.05#0.05
     nms_iou_threshold: 0.2#0.5#0.5
 
     use_bev: false
@@ -75,11 +76,9 @@ model: {
     target_assigner: {
 anchor_generators: {
     anchor_generator_stride: {
-        #sizes: [0.67, 0.68, 1.74]  # wlh
-        sizes: [0.67, 0.67, 1.75]  # wlh
+        sizes: [0.67, 0.68, 1.74]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
-        #offsets: [-22.96, -22.96, -0.18]
+        offsets: [-22.96, -22.96, -0.18]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
@@ -87,11 +86,9 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        #sizes: [1.90, 4.53, 1.69]  # wlh
-        sizes: [1.88, 4.47, 1.65]  # wlh
+        sizes: [1.90, 4.53, 1.69]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.16]  # origin_offset + strides / 2
-        #offsets: [-22.96, -22.96, -0.11]
+        offsets: [-22.96, -22.96, -0.11]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.6
         unmatched_threshold: 0.45
@@ -99,8 +96,7 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        sizes: [0.85, 1.97, 1.59]  # wlh
-        #sizes: [0.81, 1.99, 1.67]  # wlh
+        sizes: [0.81, 1.99, 1.67]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
         offsets: [-22.96, -22.96, -0.30]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
@@ -110,16 +106,15 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        #sizes: [1.33, 1.32, 1.02]
-        sizes: [1.35, 1.30, 0.98]  # wlh
+        sizes: [1.33, 1.32, 1.02]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.23]  # origin_offset + strides / 2
-        #offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
+        offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
     }
 }
+
 
 
       sample_positive_fraction : -1

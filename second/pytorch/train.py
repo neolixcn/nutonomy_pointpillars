@@ -648,8 +648,17 @@ def predict_kitti_to_anno(net,
                 # image_shape = [image_shape[0], image_shape[1]]
                 # bbox[2:] = np.minimum(bbox[2:], image_shape[::-1])
                 # bbox[:2] = np.maximum(bbox[:2], [0, 0])
-                content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(box_lidar[3]) + " "\
-                           + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
+                # if (float(score) < 0.2) & (str(label) in ['1', '2', '3']):
+                #     pass
+                # elif (float(score) < 0.2) & (str(label) == '0') & ((float(box_lidar[0]) > 5) | (float(box_lidar[1]) > 5)):
+                #     pass
+                # else:
+                #     content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(box_lidar[3]) + " "\
+                #                + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
+                content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(
+                    box_lidar[3]) + " " \
+                           + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(
+                    box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
                 anno["name"].append(class_names[int(label)])
                 anno["truncated"].append(0.0)
                 anno["occluded"].append(0)
@@ -674,7 +683,7 @@ def predict_kitti_to_anno(net,
             global dataid
             dataid += 1
             # print("content", content)
-            with open("./pre_test_office/%06d.txt" % dataid, 'w') as f:
+            with open("./pre_test/%06d.txt" % dataid, 'w') as f:
                 f.write(content)
             if num_example != 0:
                 anno = {n: np.stack(v) for n, v in anno.items()}
@@ -807,7 +816,7 @@ def evaluate(config_path,
                 dt_annos += predict_kitti_to_anno(
                     net, example_tuple, class_names, center_limit_range,
                     model_cfg.lidar_input, global_set)
-                with open(result_path_step / "result_office.pkl", 'wb') as f:
+                with open(result_path_step / "result.pkl", 'wb') as f:
                     pickle.dump(dt_annos, f)
 
             else:

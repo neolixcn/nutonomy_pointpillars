@@ -1,6 +1,7 @@
-import numpy as np
 import os
+import numpy as np
 import numba
+import fire
 
 
 @numba.jit(nopython=False)
@@ -179,56 +180,6 @@ def center_to_corner_box3d(centers,
     return corners
 
 
-def filter_boxes_labelbin(label_f, new_label_f):
-    """
-    filter boxes to be deleted in one frame
-    filter the box whose class is "pedestrian"  and whose distance between beginning is smaller than 5m
-    :param label_f:
-    :return: 3D boxes
-    """
-    line_ls = np.fromfile(label_f, dtype=np.float32).reshape(-1, 8)
-    deleted_ls = []
-    for line in line_ls:
-        object_cls = line[-1]
-        distance_x = float(line[0])
-        distance_y = float(line[1])
-        if (int(object_cls) == 3) & (abs(distance_x) < 5) & (abs(distance_y) < 5):
-            print(distance_x, distance_y)
-            pass
-        else:
-            deleted_ls.append(line)
-    print(len(line_ls), len(deleted_ls), )
-    np.array(deleted_ls).astype(np.float32).tofile(new_label_f)
-    return np.array([])
-
-
-def filter_boxes(label_f, new_label_f):
-    """
-    filter boxes to be deleted in one frame
-    filter the box whose class is "pedestrian"  and whose distance between beginning is smaller than 5m
-    :param label_f:
-    :return: 3D boxes
-    """
-    with open(label_f, 'r') as f:
-        line_ls = f.readlines()
-        boxes3d = []
-        deleted_ls = []
-        for line in line_ls:
-            label_ls = line.split(" ")
-            object_cls = label_ls[0]
-            distance_x = float(label_ls[11])
-            distance_y = float(label_ls[12])
-            if (int(object_cls) == 0) & (abs(distance_x) < 5) & (abs(distance_y) < 55):
-                    boxes3d.append([float(label_ls[11]), float(label_ls[12]), float(label_ls[13]),
-                                   float(label_ls[10]), float(label_ls[9]), float(label_ls[8])+1, -(-np.pi/2-float(label_ls[14]))])
-            else:
-                deleted_ls.append(line.strip())
-        with open(new_label_f, 'r') as f_nww:
-            f_nww.write("\n".join(deleted_ls))
-        boxes3d_arr = np.array(boxes3d)
-        return boxes3d_arr
-
-
 def delete_one_object(boxes_3d, pc_f, new_pc_f):
     """
     delete the points of one certain object from one frame point
@@ -238,19 +189,21 @@ def delete_one_object(boxes_3d, pc_f, new_pc_f):
     """
     pc = np.fromfile(pc_f, dtype=np.float32).reshape(-1, 4)
     pc_mask = np.zeros([pc.shape[0]])
-    point_indices = points_in_rbbox(pc, boxes_3d)
+    obj_num = boxes_3d.shape[0]
+    boxes_label = boxes_3d[:, 0]
+    new_points = []
+    point_indices = points_in_rbbox(pc, boxes_3d[:, 1:])
     print(len(point_indices.shape))
     if len(point_indices.shape) == 1:
         print("same same same")
         pc.astype(np.float32).tofile(new_pc_f)
     else:
-        for i in range(point_indices.shape[0]):
-            for j in range(point_indices.shape[-1]):
-                pc_mask[i] += int(point_indices[i][j])
-        pc_mask = pc_mask.astype(np.bool_)
-        new_pc_mask = (pc_mask == False)
-        pc_deleted = pc[new_pc_mask]
-        pc_deleted.astype(np.float32).tofile(new_pc_f)
+        for i in range(obj_num):
+            points = pc[point_indices[:, i]]
+            points[: 3] = boxes_label[i]
+            new_points.append(points.tolist())
+
+        new_points.astype(np.float32).tofile(new_pc_f)
 
 
 def delete_points(label_path, pc_path, new_pc_path, deleted_label_path):
@@ -259,22 +212,31 @@ def delete_points(label_path, pc_path, new_pc_path, deleted_label_path):
     for label_f in label_ls:
         print(label_f)
         deleted_label_file = deleted_label_path + label_f
-        boxes3d = filter_boxes_labelbin(label_path + label_f, deleted_label_file)
-        # points_f = pc_path + label_f.strip("txt") + "bin"
-        # new_pc_f = new_pc_path + label_f.strip("txt") + "bin"
-        # # print(label_f, points_f)
-        # delete_one_object(boxes3d, points_f, new_pc_f)
+        boxes3d = generate_boxes(label_path + label_f, deleted_label_file)
+        points_f = pc_path + label_f.strip("txt") + "bin"
+        new_pc_f = new_pc_path + label_f.strip("txt") + "bin"
+        # print(label_f, points_f)
+        delete_one_object(boxes3d, points_f, new_pc_f)
 
 
+def generate_boxes(label_f, new_label_f):
+    """
+    filter boxes to be deleted in one frame
+    filter the box whose class is "pedestrian"  and whose distance between beginning is smaller than 5m
+    :param label_f:
+    :return: 3D boxes
+    """
+    with open(label_f, 'r') as f:
+        line_ls = f.readlines()
+        boxes3d = []
+        for line in line_ls:
+            label_ls = line.split(" ")
+            boxes3d.append([label_ls[0], float(label_ls[11]), float(label_ls[12]), float(label_ls[13]),
+                            float(label_ls[10]), float(label_ls[9]), float(label_ls[8]) + 1,
+                            -(-np.pi / 2 - float(label_ls[14]))])
+        boxes3d_arr = np.array(boxes3d)
+        return boxes3d_arr
 
 
 if __name__ == "__main__":
-    # label_path = "/home/shl/visu_vedio/data_visual/pre_nms_0.0/pre_test/"
-    # points_path = "/home/shl/visu_vedio/data_visual/bins/"
-    # new_points_path = "/home/shl/visu_vedio/data_visual/pre_nms_0.0/deleted_bins/"
-    # deleted_label_path = "/home/shl/visu_vedio/data_visual/pre_nms_0.0/deleted_label_path/"
-    label_path = "/home/shl/visu_vedio/data_visual/detection_8d/new_detection/"
-    points_path = "/home/shl/visu_vedio/data_visual/bins/"
-    new_points_path = "/home/shl/visu_vedio/data_visual/pre_nms_0.0/deleted_bins/"
-    deleted_label_path = "/home/shl/visu_vedio/data_visual/detection_8d/deleted_new_detection/"
-    delete_points(label_path, points_path, new_points_path, deleted_label_path)
+    fire.Fire()
