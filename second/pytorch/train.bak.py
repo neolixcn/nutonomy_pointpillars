@@ -154,10 +154,10 @@ def train(config_path,
     center_limit_range = model_cfg.post_center_limit_range
     # net = second_builder.build(model_cfg, voxel_generator, target_assigner)
     net = second_builder.build(model_cfg, voxel_generator, target_assigner, input_cfg.batch_size)
-    # print("We'll use", torch.cuda.device_count(), "GPUs!")
+    print("We'll use", torch.cuda.device_count(), "GPUs!")
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-    # devices_ids = [0, 1, 2, 3]
-    # net = nn.DataParallel(net, device_ids=devices_ids)
+    devices_ids = [0, 1, 2, 3]
+    net = nn.DataParallel(net, device_ids=devices_ids)
     net = net.cuda()
     # net_train = torch.nn.DataParallel(net).cuda()
     # for n, p in net.named_parameters():
@@ -184,11 +184,11 @@ def train(config_path,
     #     param.requires_grad = True
     # for i in net.named_parameters():
     #     print(i)
-    torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
-    # torchplus.train.try_restore_latest_checkpoints_multi_gpus(model_dir, [net.module])
+    # torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
+    torchplus.train.try_restore_latest_checkpoints_multi_gpus(model_dir, [net.module])
 
-    gstep = net.get_global_step() - 1
-    # gstep = net.module.get_global_step() - 1
+    # gstep = net.get_global_step() - 1
+    gstep = net.module.get_global_step() - 1
 
     optimizer_cfg = train_cfg.optimizer
     if train_cfg.enable_mixed_precision:
@@ -263,8 +263,8 @@ def train(config_path,
     writer = SummaryWriter(str(summary_dir))
 
     total_step_elapsed = 0
-    remain_steps = train_cfg.steps - net.get_global_step()
-    # remain_steps = train_cfg.steps - net.module.get_global_step()
+    # remain_steps = train_cfg.steps - net.get_global_step()
+    remain_steps = train_cfg.steps - net.module.get_global_step()
     t = time.time()
     ckpt_start_time = t
 
@@ -441,8 +441,8 @@ def train(config_path,
             torchplus.train.save_models(eval_checkpoint_dir, [net, optimizer], net.get_global_step(), max_to_keep=100)
 
     except Exception as e:
-        # torchplus.train.save_models(model_dir, [net.module, optimizer], net.module.get_global_step())
-        torchplus.train.save_models(model_dir, [net, optimizer], net.get_global_step())
+        torchplus.train.save_models(model_dir, [net.module, optimizer], net.module.get_global_step())
+        # torchplus.train.save_models(model_dir, [net, optimizer], net.get_global_step())
         logf.close()
         raise e
     # save model before exit
@@ -557,7 +557,7 @@ def _predict_kitti_to_file(net,
         with open(result_file, 'w') as f:
             f.write(result_str)
 
-dataid = 0
+dataid = -1
 
 def predict_kitti_to_anno(net,
                           example,
@@ -648,17 +648,8 @@ def predict_kitti_to_anno(net,
                 # image_shape = [image_shape[0], image_shape[1]]
                 # bbox[2:] = np.minimum(bbox[2:], image_shape[::-1])
                 # bbox[:2] = np.maximum(bbox[:2], [0, 0])
-                # if (float(score) < 0.2) & (str(label) in ['1', '2', '3']):
-                #     pass
-                # elif (float(score) < 0.2) & (str(label) == '0') & ((float(box_lidar[0]) > 5) | (float(box_lidar[1]) > 5)):
-                #     pass
-                # else:
-                #     content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(box_lidar[3]) + " "\
-                #                + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
-                content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(
-                    box_lidar[3]) + " " \
-                           + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(
-                    box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
+                content += str(label) + " 0.0 0 0.0 0.0 0.0 0.0 0.0 " + str(box_lidar[5]) + " " + str(box_lidar[3]) + " "\
+                           + str(box_lidar[4]) + " " + str(box_lidar[0]) + " " + str(box_lidar[1]) + " " + str(box_lidar[2]) + " " + str(box_lidar[6]) + " " + str(score) + "\n"
                 anno["name"].append(class_names[int(label)])
                 anno["truncated"].append(0.0)
                 anno["occluded"].append(0)
@@ -683,8 +674,8 @@ def predict_kitti_to_anno(net,
             global dataid
             dataid += 1
             # print("content", content)
-            with open("./pre_test/%06d.txt" % dataid, 'w') as f:
-                f.write(content)
+            # with open("./pre_test/%06d.txt" % dataid, 'w') as f:
+            #     f.write(content)
             if num_example != 0:
                 anno = {n: np.stack(v) for n, v in anno.items()}
                 annos.append(anno)
@@ -861,7 +852,7 @@ def export_onnx(net, example, class_names,
     coors_y = example[2][:, 2].float()
     x_sub = coors_x.unsqueeze(1) * 0.16 - 22.96
     y_sub = coors_y.unsqueeze(1) * 0.16 - 22.96
-    ones = torch.ones([1, 100], dtype=torch.float32, device=pillar_x.device)
+    ones = torch.ones([1, 100],dtype=torch.float32, device=pillar_x.device)
     x_sub_shaped = torch.mm(x_sub, ones).unsqueeze(0).unsqueeze(0)
     y_sub_shaped = torch.mm(y_sub, ones).unsqueeze(0).unsqueeze(0)
 
@@ -910,17 +901,17 @@ def export_onnx(net, example, class_names,
                    "num_points_per_pillar", "x_sub_shaped", "y_sub_shaped", "mask", "coors"]
 
     # Wierd Convloution
-    pillar_x = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_y = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_z = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    pillar_i = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    num_points_per_pillar = torch.ones([1, 18000], dtype=torch.float32, device=pillar_x.device)
-    x_sub_shaped = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    y_sub_shaped = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
-    mask = torch.ones([1, 1, 18000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_x = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_y = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_z = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    pillar_i = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    num_points_per_pillar = torch.ones([1, 10000], dtype=torch.float32, device=pillar_x.device)
+    x_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    y_sub_shaped = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
+    mask = torch.ones([1, 1, 10000, 100], dtype=torch.float32, device=pillar_x.device)
 
     device = torch.device("cuda:0")
-    coors_numpy = np.loadtxt('./onnx_predict_outputs/coors_batch_size_3.txt', dtype=np.int32)
+    coors_numpy = np.loadtxt('./onnx_predict_outputs/coors.txt', dtype=np.int32)
     coors = torch.from_numpy(coors_numpy)
     coors = coors.to(device)
 
@@ -954,7 +945,7 @@ def export_onnx(net, example, class_names,
                       output_names=["rpn_input_features"])
     print('pfe.onnx transfer success ...')
 
-    rpn_input = torch.ones([3, 64, 288, 288], dtype=torch.float32, device=pillar_x.device)
+    rpn_input = torch.ones([1, 64, 288, 288], dtype=torch.float32, device=pillar_x.device)
     torch.onnx.export(net.rpn, rpn_input, "rpn.onnx", verbose=True, input_names=["rpn_input_features"],
                       output_names=["box", "cls", "dir"])
     print('rpn.onnx transfer success ...')

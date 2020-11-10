@@ -26,6 +26,22 @@ class VoxelGenerator:
             points, self._voxel_size, self._point_cloud_range,
             self._max_num_points, True, max_voxels)
 
+    def generate_multi_gpu(self, points, max_voxels=None):
+        res = points_to_voxel(points,
+                              self._voxel_size,
+                              self._point_cloud_range,
+                              self._coor_to_voxelidx,
+                              self._max_num_points,
+                              max_voxels or self._max_voxels,
+                              self._full_mean,
+                              self._block_filtering,
+                              self._block_factor,
+                              self._block_size,
+                              self._height_threshold,
+                              self._height_high_threshold,
+                              pad_output=True)
+        return res
+
     @property
     def voxel_size(self):
         return self._voxel_size

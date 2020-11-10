@@ -1,0 +1,1 @@
+python sample_files.py --input_lidar=/home/caros/mnt/mnt_all_pcd/ --output_lidar=/home/caros/mnt/output_all_pcd/ --input_camera=/home/caros/mnt/mnt_png/ --output_camera=/home/caros/mnt/output_png/ --sample_rate=30

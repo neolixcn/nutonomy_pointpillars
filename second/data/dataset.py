@@ -8,7 +8,7 @@ import numpy as np
 from second.core import box_np_ops
 from second.core import preprocess as prep
 from second.data import kitti_common as kitti
-from second.data.preprocess import _read_and_prep_v9
+from second.data.preprocess import _read_and_prep_v9, _read_and_prep_v9_inference
 
 
 class Dataset(object):
@@ -28,13 +28,15 @@ class Dataset(object):
 
 class KittiDataset(Dataset):
     def __init__(self, info_path, root_path, num_point_features,
-                 target_assigner, feature_map_size, prep_func):
+                 target_assigner, feature_map_size, prep_func, inference=False, points=None, prep_func_inference=None):
         with open(info_path, 'rb') as f:
             infos = pickle.load(f)
         #self._kitti_infos = kitti.filter_infos_by_used_classes(infos, class_names)
         self._root_path = root_path
         self._kitti_infos = infos
         self._num_point_features = num_point_features
+        self.inference = inference
+        self.points = points
         print("remain number of infos:", len(self._kitti_infos))
         # generate anchors cache
         # [352, 400]
@@ -52,6 +54,7 @@ class KittiDataset(Dataset):
             "unmatched_thresholds": unmatched_thresholds,
         }
         self._prep_func = partial(prep_func, anchor_cache=anchor_cache)
+        self._prep_func_inference = partial(prep_func_inference, anchor_cache=anchor_cache)
 
     def __len__(self):
         return len(self._kitti_infos)
@@ -61,8 +64,13 @@ class KittiDataset(Dataset):
         return self._kitti_infos
 
     def __getitem__(self, idx):
-        return _read_and_prep_v9(
-            info=self._kitti_infos[idx],
-            root_path=self._root_path,
-            num_point_features=self._num_point_features,
-            prep_func=self._prep_func)
+        if self.inference:
+            return _read_and_prep_v9_inference(
+                self.points,
+                prep_func=self._prep_func_inference)
+        else:
+            return _read_and_prep_v9(
+                info=self._kitti_infos[idx],
+                root_path=self._root_path,
+                num_point_features=self._num_point_features,
+                prep_func=self._prep_func)

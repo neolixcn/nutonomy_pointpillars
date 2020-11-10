@@ -521,23 +521,23 @@ if __name__ == "__main__":
     fp_unk_pub = rospy.Publisher("fp_unk_bbox", BoundingBoxArray, queue_size=10)
 
 
-    val_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/shanghaipuruan_infos_val.pkl"
-    result_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/result.pkl"
-    val_bin_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/val_bins/"
+    val_path = "/home/shl/data/performance_for_imu_back_lidar/compare_pkls/back_lidar_infos_val.pkl"
+    result_path = "/home/shl/data/performance_for_imu_back_lidar/compare_pkls/result.pkl"
+    val_bin_path = "/data/data/dataset/shanghai_to_annotate/2614_back_lidar/imu_back_bin/"
     f1 = open(val_path, 'rb')
     val_infos = pickle.load(f1)
     f2 = open(result_path, 'rb')
     result_infos = pickle.load(f2)
 
-    fn_class0_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fn.class0.txt"
-    fn_class1_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fn.class1.txt"
-    fn_class2_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fn.class2.txt"
-    fn_class3_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fn.class3.txt"
+    fn_class0_path = "/home/shl/data/performance_for_imu_back_lidar/fn.class_0.overlap1.txt"
+    fn_class1_path = "/home/shl/data/performance_for_imu_back_lidar/fn.class_1.overlap1.txt"
+    fn_class2_path = "/home/shl/data/performance_for_imu_back_lidar/fn.class_2.overlap1.txt"
+    fn_class3_path = "/home/shl/data/performance_for_imu_back_lidar/fn.class_3.overlap1.txt"
 
-    fp_class0_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fp.class0.txt"
-    fp_class1_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fp.class1.txt"
-    fp_class2_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fp.class2.txt"
-    fp_class3_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/fn_fp_txt/fp.class3.txt"
+    fp_class0_path = "/home/shl/data/performance_for_imu_back_lidar/fp.class_0.overlap1.txt"
+    fp_class1_path = "/home/shl/data/performance_for_imu_back_lidar/fp.class_1.overlap1.txt"
+    fp_class2_path = "/home/shl/data/performance_for_imu_back_lidar/fp.class_2.overlap1.txt"
+    fp_class3_path = "/home/shl/data/performance_for_imu_back_lidar/fp.class_3.overlap1.txt"
     fn_c0_dict = generate_fn_fp_dict(fn_class0_path)
     fn_c1_dict = generate_fn_fp_dict(fn_class1_path)
     fn_c2_dict = generate_fn_fp_dict(fn_class2_path)

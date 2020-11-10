@@ -491,6 +491,7 @@ class LossNormType(Enum):
     NormByNumExamples = "norm_by_num_examples"
     NormByNumPosNeg = "norm_by_num_pos_neg"
 
+data_id = -1
 class VoxelNet(nn.Module):
     def __init__(self,
                  output_shape,
@@ -711,12 +712,19 @@ class VoxelNet(nn.Module):
         #     f2.write(str(preds_dict[1].data))
         # with open("rpn_dir.txt", 'w') as f3:
         #     f3.write(str(preds_dict[2].data))
+        # return preds_dict
         box_preds = preds_dict[0]
         cls_preds = preds_dict[1]
         # print("box_preds.shape", box_preds.shape)
         # print("cls_preds.shape", cls_preds.shape)
         # return preds_dict
         # return preds_dict
+        global data_id
+        data_id += 1
+        # np.save("%06d_preds_box" % data_id, preds_dict[0].detach().cpu().numpy())
+        # np.save("%06d_preds_cls" % data_id, preds_dict[1].detach().cpu().numpy())
+        # np.save("%06d_preds_dir" % data_id, preds_dict[2].detach().cpu().numpy())
+
         if self.training:
             #labels = example['labels']
             #reg_targets = example['reg_targets']

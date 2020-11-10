@@ -5,7 +5,7 @@ model: {
       voxel_size : [0.16, 0.16, 4]
       max_number_of_points_per_voxel : 100
     }
-    num_class: 4
+    num_class: 7
     voxel_feature_extractor: {
       module_class_name: "PillarFeatureNet"
       num_filters: [64]
@@ -61,7 +61,6 @@ model: {
     nms_pre_max_size: 1000
     nms_post_max_size: 300
     nms_score_threshold: 0.2#0.05#0.05
-    nms_score_threshold: 0.2#0.05#0.05
     nms_iou_threshold: 0.2#0.5#0.5
 
     use_bev: false
@@ -76,9 +75,9 @@ model: {
     target_assigner: {
 anchor_generators: {
     anchor_generator_stride: {
-        sizes: [0.67, 0.68, 1.74]  # wlh
+        sizes: [0.66, 0.66, 1.74]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.18]  # origin_offset + strides / 2
+        offsets: [-22.96, -22.96, -0.16]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
@@ -86,9 +85,19 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        sizes: [1.90, 4.53, 1.69]  # wlh
+        sizes: [0.55, 0.70, 0.79]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.11]  # origin_offset + strides / 2
+        offsets: [-22.96, -22.96, -0.27]  # origin_offset + strides / 2
+        rotations: [0, 1.57]  # 0, pi/2
+        matched_threshold: 0.5
+        unmatched_threshold: 0.35
+    }
+}
+anchor_generators: {
+    anchor_generator_stride: {
+        sizes: [0.72, 1.84, 1.37]  # wlh
+        strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
+        offsets: [-22.96, -22.96, -0.21]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.6
         unmatched_threshold: 0.45
@@ -96,9 +105,9 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        sizes: [0.81, 1.99, 1.67]  # wlh
+        sizes: [3.97, 2.15, 1.29]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.30]  # origin_offset + strides / 2
+        offsets: [-22.96, -22.96, -0.21]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
@@ -106,16 +115,35 @@ anchor_generators: {
 }
 anchor_generators: {
     anchor_generator_stride: {
-        sizes: [1.33, 1.32, 1.02]  # wlh
+        sizes: [1.93, 4.78, 1.73]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
-        offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
+        offsets: [-22.96, -22.96, -0.21]  # origin_offset + strides / 2
+        rotations: [0, 1.57]  # 0, pi/2
+        matched_threshold: 0.6
+        unmatched_threshold: 0.45
+    }
+}
+
+anchor_generators: {
+    anchor_generator_stride: {
+        sizes: [0.92, 1.08, 1.19] # wlh
+        strides: [0.16, 0.16, 0.0]   # if generate only 1 z_center, z_stride will be ignored
+        offsets: [-22.96, -22.96, -0.16]  # origin_offset + strides / 2
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
     }
 }
-
-
+anchor_generators: {
+    anchor_generator_stride: {
+        sizes: [1.28, 2.95, 1.68]  # wlh
+        strides: [0.16, 0.16, 0.0]   # if generate only 1 z_center, z_stride will be ignored
+        offsets: [-22.96, -22.96, -0.15]  # origin_offset + strides / 2
+        rotations: [0, 1.57]  # 0, pi/2
+        matched_threshold: 0.5
+        unmatched_threshold: 0.35
+    }
+}
 
       sample_positive_fraction : -1
       sample_size : 512
@@ -130,13 +158,13 @@ anchor_generators: {
 
 train_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_train.tfrecord"
-  class_names: ["Pedestrian", "Vehicle", "Cyclist", "Unknown"]
-  max_num_epochs : 200
+  class_names: ["Pedestrian", "Barrier", "Cyclist", "Bicycles", "Vehicle", "Unknown", "Tricycle"]
+  max_num_epochs : 320
   batch_size: 2
   prefetch_size : 25
-  max_number_of_voxels: 10000
+  max_number_of_voxels: 12000
   shuffle_points: true
-  num_workers: 8
+  num_workers: 3
   groundtruth_localization_noise_std: [0.25, 0.25, 0.25]
   groundtruth_rotation_uniform_noise: [-0.15707963267, 0.15707963267]
   global_rotation_uniform_noise: [-0.78539816, 0.78539816]
@@ -147,31 +175,51 @@ train_input_reader: {
   groundtruth_points_drop_percentage: 0.0
   groundtruth_drop_max_keep_points: 15
   database_sampler {
-    database_info_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_3828/dbinfos_train.pkl"
+    database_info_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614_7cls/dbinfos_train.pkl"
     sample_groups {
       name_to_max_num {
         key: "Pedestrian"
-        value: 8
+        value: 4
       }
     }
     sample_groups {
       name_to_max_num {
-        key: "Vehicle"
-        value: 6
+        key: "Barrier"
+        value: 4
       }
     }
     sample_groups {
       name_to_max_num {
         key: "Cyclist"
-        value: 10
+        value: 4
+      }
+    }
+    sample_groups {
+      name_to_max_num {
+        key: "Bicycles"
+        value: 2
+      }
+    }
+    sample_groups {
+      name_to_max_num {
+        key: "Vehicle"
+        value: 2
       }
     }
     sample_groups {
       name_to_max_num {
         key: "Unknown"
-        value: 4
+        value: 8
       }
     }
+    sample_groups {
+      name_to_max_num {
+        key: "Tricycle"
+        value: 10
+      }
+    }
+
+
     database_prep_steps {
       filter_by_min_num_points {
         min_num_point_pairs {
@@ -179,32 +227,45 @@ train_input_reader: {
           value: 10
         }
         min_num_point_pairs {
-          key: "Vehicle"
-          value: 10
+          key: "Barrier"
+          value: 5
         }
         min_num_point_pairs {
           key: "Cyclist"
           value: 10
         }
         min_num_point_pairs {
+          key: "Bicycles"
+          value: 30
+        }
+        min_num_point_pairs {
+          key: "Vehicle"
+          value: 100
+        }
+        min_num_point_pairs {
           key: "Unknown"
-          value: 5
+          value: 10
+        }
+        min_num_point_pairs {
+          key: "Tricycle"
+          value: 10
         }
       }
     }
-#    database_prep_steps {
-#      filter_by_difficulty {
-#        removed_difficulties: [-1]
-#      }
-#    }
+
+    #database_prep_steps {
+    #  filter_by_difficulty {
+    #    removed_difficulties: [-1]
+    #  }
+    #}
     global_random_rotation_range_per_object: [0, 0]
     rate: 1.0
   }
 
   remove_unknown_examples: false
   remove_environment: false
-  kitti_info_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/infos_train.pkl"
-  kitti_root_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/"
+  kitti_info_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614_7cls/infos_train.pkl"
+  kitti_root_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614_7cls/"
 }
 
 train_config: {
@@ -213,7 +274,7 @@ train_config: {
       learning_rate: {
         exponential_decay_learning_rate: {
           initial_learning_rate: 2e-4
-          decay_steps: 41925 #25814 #1650#2475#27840 # 1856 steps per epoch * 15 epochs
+          decay_steps: 19215 #1650#2475#27840 # 1856 steps per epoch * 15 epochs
           decay_factor: 0.8
           staircase: true
         }
@@ -225,10 +286,10 @@ train_config: {
   }
   inter_op_parallelism_threads: 4
   intra_op_parallelism_threads: 4
-  steps: 559000 #344200 #26400#1261920 # 1856 steps per epoch * 160 epochs
+  steps: 256200 #26400#1261920 # 1856 steps per epoch * 160 epochs
   steps_per_eval: 7000000 # 1856 steps per epoch * 5 epochs
   save_checkpoints_secs : 1800 # half hour
-  save_summary_steps : 20
+  save_summary_steps : 10
   enable_mixed_precision: false
   loss_scale_factor : 512.0
   clear_metrics_every_epoch: false
@@ -236,7 +297,7 @@ train_config: {
 
 eval_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_val.tfrecord"
-  class_names: ["Pedestrian", "Vehicle", "Cyclist", "Unknown"]
+  class_names: ["Pedestrian", "Barrier", "Cyclist", "Bicycles", "Vehicle", "Unknown", "Tricycle"]
   batch_size: 1
   max_num_epochs : 160
   prefetch_size : 25
@@ -245,6 +306,6 @@ eval_input_reader: {
   num_workers: 1
   anchor_area_threshold: 1
   remove_environment: false
-  kitti_info_path: "/nfs/nas/datasets/songhongli/pp_baidu_second/ppsecond_infos_train.pkl"
-  kitti_root_path: "/nfs/nas/datasets/songhongli/pp_baidu_second/"
+  kitti_info_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614_7cls/infos_val.pkl"
+  kitti_root_path: "/nfs/nas/datasets/songhongli/imu_back_lidar_2614_7cls/"
 }

@@ -32,8 +32,8 @@ def count_labels(l_path, cls):
 def visu_class(class_path):
     plt.figure(figsize=(10, 10), dpi=80)
     N = 14
-    class_ls = ["adult", "animal", "barrier", "bicycle", "bicycles", "bus", "car", "child", "cyclist", "dontcare",
-                "motorcycle", "motorcyclist", "tricycle", "truck"]
+    class_ls = ["car", "barrier", "adult", "bicycles", "motorcycle", "bicycle", "motorcyclist", "cyclist", "bus",
+                "truck", "dontcare", "child", "tricycle", "animal"]
     objects_num = []
     for c in class_ls:
         objects_num.append(count_labels(class_path, c))
@@ -46,7 +46,7 @@ def visu_class(class_path):
     p2 = plt.bar(index, values, width, label=label_content, color="BLUE")
     plt.xlabel('class')
     plt.ylabel('number of bounding box')
-    plt.title('000000-003025 Bounding box Distribution')
+    plt.title('Bounding Boxes of Single Lidar')
     plt.xticks(index, (class_ls))
     plt.legend(loc="upper right")
     plt.show()
@@ -93,5 +93,5 @@ def visu_score_true(s_path, t_path):
 if __name__ == "__main__":
     # visu_PR_Curve()
     # label_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/14cls_txts/"
-    label_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/14cls_txts/"
+    label_path = "/data/data/dataset/shanghai_to_annotate/2614_back_lidar/txt_14cls/"
     visu_class(label_path)

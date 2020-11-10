@@ -37,7 +37,8 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['pedestrian', 'vehicle', 'cyclist', 'unknown', 'Bicycle_no_person', 'Bicycles', 'van', 'person_sitting', 'car', 'tractor', 'trailer']
+    # CLASS_NAMES = ['pedestrian', 'vehicle', 'cyclist', 'unknown', 'Bicycle_no_person', 'Bicycles', 'van', 'person_sitting', 'car', 'tractor', 'trailer']
+    CLASS_NAMES = ["Pedestrian", "Vehicle", "Cyclist", "Unknown", "Tricycle", "Bicycles", "Barrier",  "Bicycle"]
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
     MAX_TRUNCATION = [0.15, 0.3, 0.5]
@@ -667,8 +668,8 @@ def eval_class_v3(gt_annos,
                 dt_trues = np.array(dt_trues)
                 dt_scoress = np.array(dt_scoress)
                 if l == 0:
-                    np.save("%d.%d.%d_true" % (m, l, k), dt_trues)
-                    np.save("%d.%d.%d_score" % (m, l, k), dt_scoress)
+                    np.save("metric_%d.%d.%d.%d_true" % (metric, m, l, k), dt_trues)
+                    np.save("metric_%d.%d.%d.%d_score" % (metric, m, l, k), dt_scoress)
                 print("m:", m, " l:", l, " k:", k)
                 print("tps.sum()", tps.sum())
                 print("fps.sum()", fps.sum())
@@ -873,13 +874,39 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
                             [0.25, 0.5, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25]])
 
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
+    # class_to_name = {
+    #     0: 'Pedestrian',
+    #     1: 'Vehicle',
+    #     2: 'Cyclist',
+    #     3: 'Unknown',
+    #     4: 'Bicycle_no_person',
+    #     5: 'Bicycles'
+    # }
+    # class_to_name = {
+    #     0: 'adult',
+    #     1: 'barrier',
+    #     2: 'bicycle',
+    #     3: 'bicycles',
+    #     4: 'bus',
+    #     5: 'car',
+    #     6: 'child',
+    #     7: 'cyclist',
+    #     8: 'dontcare',
+    #     9: 'motorcycle',
+    #     10: 'motorcyclist',
+    #     11: 'tricycle',
+    #     12: 'truck',
+    # }
     class_to_name = {
-        0: 'Pedestrian',
+        0:'Pedestrian',
         1: 'Vehicle',
         2: 'Cyclist',
         3: 'Unknown',
-        4: 'Bicycle_no_person',
-        5: 'Bicycles'
+        4: 'Tricycle',
+        5: 'Bicycles',
+        6: 'Barrier',
+        7: 'Bicycle',
+        8: 'DontCare'
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
