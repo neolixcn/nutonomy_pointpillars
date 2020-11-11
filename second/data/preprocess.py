@@ -317,35 +317,14 @@ def _read_and_prep_v9(info, root_path, num_point_features, prep_func):
     v_path = pathlib.Path(root_path) / info['velodyne_path']
     v_path = v_path.parent.parent / (
         v_path.parent.stem) / v_path.name
-    # print("velodyne_path", v_path)
-    # points = np.fromfile('/nfs/nas/Perception/kitti/training/velodyne/001200.bin', dtype=np.float32).reshape([-1, num_point_features])
-    # jiashan_rootpath = "/nfs/nas/datasets/songhongli/neolix_shanghai_1924/training/velodyne/"
-    jiashan_rootpath = "/home/songhongli/1106_bins/"
-    fname_ls = os.listdir(jiashan_rootpath)
-    fname_ls.sort()
-    global data_id
-    data_id += 1
-    # if data_id == 10000:
-    #     assert False
-    v_path = jiashan_rootpath + fname_ls[data_id]
-    print(("v_path", v_path))
     points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, num_point_features])
     # points[:, 3] = points[:, 3] / 255
     points[:, 3] = 0
     pc_idx = info['pc_idx']
-    # image_idx = info['image_idx']
-    # rect = info['calib/R0_rect'].astype(np.float32)
-    # Trv2c = info['calib/Tr_velo_to_cam'].astype(np.float32)
-    # P2 = info['calib/P2'].astype(np.float32)
     input_dict = {
         'points': points,
-        # 'rect': rect,
-        # 'Trv2c': Trv2c,
-        # 'P2': P2,
-        # 'image_shape': np.array(info["img_shape"], dtype=np.int32),
         'pc_idx': pc_idx,
         'velodyne_path': info['velodyne_path'],
-        # 'pointcloud_num_features': num_point_features,
     }
 
     if 'annos' in info:
