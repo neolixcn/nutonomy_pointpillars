@@ -317,12 +317,12 @@ train_config: {
 eval_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_val.tfrecord"
   class_names: ["Pedestrian", "Vehicle", "Cyclist", "Unknown", "Tricycle", "Bicycles", "Barrier",  "Bicycle"]
-  batch_size: 1
+  batch_size: 2
   max_num_epochs : 160
   prefetch_size : 25
   max_number_of_voxels: 10000
   shuffle_points: false
-  num_workers: 1
+  num_workers: 4
   anchor_area_threshold: 1
   remove_environment: false
   kitti_info_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5976_8cls/infos_val.pkl"
