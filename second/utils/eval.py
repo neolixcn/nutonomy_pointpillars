@@ -898,7 +898,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, difficultys=[0
     #     12: 'truck',
     # }
     class_to_name = {
-        0: 'Pedestrian',
+        0:'Pedestrian',
         1: 'Vehicle',
         2: 'Cyclist',
         3: 'Unknown',

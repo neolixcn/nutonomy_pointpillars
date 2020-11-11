@@ -61,6 +61,7 @@ model: {
     nms_pre_max_size: 1000
     nms_post_max_size: 300
     nms_score_threshold: 0.2#0.05#0.05
+    nms_score_threshold: 0.2#0.05#0.05
     nms_iou_threshold: 0.2#0.5#0.5
 
     use_bev: false
@@ -78,6 +79,7 @@ anchor_generators: {
         sizes: [0.67, 0.67, 1.75]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
         offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
+
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
@@ -88,6 +90,7 @@ anchor_generators: {
         sizes: [1.88, 4.47, 1.65]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
         offsets: [-22.96, -22.96, -0.16]  # origin_offset + strides / 2
+
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.6
         unmatched_threshold: 0.45
@@ -246,4 +249,5 @@ eval_input_reader: {
   remove_environment: false
   kitti_info_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/infos_val.pkl"
   kitti_root_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/"
+
 }

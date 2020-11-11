@@ -213,5 +213,155 @@ class PointPillarsScatter(nn.Module):
         # Undo the column stacking to final 4-dim tensor
         batch_canvas = batch_canvas.view(self.batch_size, self.nchannels, self.ny, self.nx)
         return batch_canvas
+        # if self.batch_size == 1:
+        #     canvas = torch.zeros(self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        #                          device=voxel_features.device)
+        #     indices = coords[:, 2] * self.nx + coords[:, 3]
+        #     # indices = indices.type(torch.float64)
+        #     indices = indices.type(torch.float64)
+        #     transposed_voxel_features = voxel_features.t()
+        #
+        #     # Now scatter the blob back to the canvas.
+        #     indices_2d = indices.view(1, -1)
+        #     ones = torch.ones([self.nchannels, 1], dtype=torch.float64, device=voxel_features.device)
+        #
+        #     # indices_num_channel = torch.nn.Upsample(size= (64, 5705),mode="nearest")(indices_2d)
+        #     # indices_num_channel = indices_num_channel.reshape(64, 5705)
+        #     # indices_num_channel = indices_2d.expand(64, 5705)
+        #     indices_num_channel = torch.mm(ones, indices_2d)
+        #     indices_num_channel = indices_num_channel.type(torch.int64)
+        #     scattered_canvas = canvas.scatter_(1, indices_num_channel, transposed_voxel_features)
+        #
+        #     # Append to a list for later stacking.
+        #     batch_canvas.append(scattered_canvas)
+        #
+        #     # Stack to 3-dim tensor (batch-size, nchannels, nrows*ncols)
+        #     batch_canvas = torch.stack(batch_canvas, 0)
+        #
+        #     # Undo the column stacking to final 4-dim tensor
+        #     batch_canvas = batch_canvas.view(1, self.nchannels, self.ny, self.nx)
+        #     return batch_canvas
+        # if self.batch_size == 1:
+        #     canvas = torch.zeros(self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        #                          device=voxel_features.device)
+        #     indices = coords[:, 2] * self.nx + coords[:, 3]
+        #     indices = indices.type(torch.float32)
+        #     transposed_voxel_features = voxel_features.t()
+        #
+        #     # Now scatter the blob back to the canvas.
+        #     indices_2d = indices.view(1, -1)
+        #     ones = torch.ones([self.nchannels, 1], dtype=torch.float32, device=voxel_features.device)
+        #     indices_num_channel = torch.mm(ones, indices_2d)
+        #     indices_num_channel = indices_num_channel.type(torch.int32)
+        #     scattered_canvas = canvas.scatter_(1, indices_num_channel, transposed_voxel_features)
+        #     # scattered_canvas = canvas
+        #
+        #     # Append to a list for later stacking.
+        #     batch_canvas.append(scattered_canvas)
+        #
+        #     # Stack to 3-dim tensor (batch-size, nchannels, nrows*ncols)
+        #     batch_canvas = torch.stack(batch_canvas, 0)
+        #
+        #     # Undo the column stacking to final 4-dim tensor
+        #     batch_canvas = batch_canvas.view(1, self.nchannels, self.ny, self.nx)
+        #     return batch_canvas
 
 
+        # if self.batch_size == 1:
+        #     canvas = torch.zeros(self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        #                          device=voxel_features.device)
+        #     indices = coords[:, 2] * self.nx + coords[:, 3]
+        #     indices = indices.type(torch.float32)
+        #     transposed_voxel_features = voxel_features.t()
+        #
+        #     # Now scatter the blob back to the canvas.
+        #     indices_2d = indices.view(1, -1)
+        #     ones = torch.ones([self.nchannels, 1], dtype=torch.float32, device=voxel_features.device)
+        #     indices_num_channel = torch.mm(ones, indices_2d)
+        #     indices_num_channel = indices_num_channel.type(torch.int64)
+        #     scattered_canvas = canvas.scatter_(1, indices_num_channel, transposed_voxel_features)
+        #
+        #     # indices_2d = indices.view(1, 1, 1, -1)
+        #     #
+        #     # indices_num_channel = nn.Upsample(size=(64, 10000))(indices_2d)
+        #     # indices_num_channel = indices_num_channel.type(torch.int64).view(64, 10000)
+        #     # scattered_canvas = canvas.scatter_(1, indices_num_channel, transposed_voxel_features)
+        #
+        #     # Append to a list for later stacking.
+        #     batch_canvas.append(scattered_canvas)
+        #
+        #     # Stack to 3-dim tensor (batch-size, nchannels, nrows*ncols)
+        #     batch_canvas = torch.stack(batch_canvas, 0)
+        #
+        #     # Undo the column stacking to final 4-dim tensor
+        #     batch_canvas = batch_canvas.view(1, self.nchannels, self.ny, self.nx)
+        #     return batch_canvas
+        #
+        # # if self.batch_size == 1:
+        # #     canvas = torch.zeros(1, self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        # #                          device=voxel_features.device)
+        # #     indices = coords[:, 2] * self.nx + coords[:, 3]
+        # #     indices = indices.type(torch.float32)
+        # #     transposed_voxel_features = voxel_features.t().view(1, 64, 10000)
+        # #     # Now scatter the blob back to the canvas.
+        # #     indices_2d = indices.view(1, 1, -1)
+        # #     ones = torch.ones([1, self.nchannels, 1], dtype=torch.float32, device=voxel_features.device)
+        # #     # delta = torch.nn.Upsample(size=(64, 10000))(indices_2d)
+        # #     indices_num_channel = torch.mm(ones, indices_2d)
+        # #     # indices_num_channel = delta.type(torch.int64)
+        # #     # indices_num_channel = torch.mm(ones, indices_2d)
+        # #     # indices_num_channel = indices_num_channel.type(torch.int32)
+        # #     scattered_canvas = canvas.scatter(1, indices_num_channel, transposed_voxel_features)
+        # #
+        # #     # Append to a list for later stacking.
+        # #     batch_canvas.append(scattered_canvas)
+        # #
+        # #     # Stack to 3-dim tensor (batch-size, nchannels, nrows*ncols)
+        # #     batch_canvas = torch.stack(batch_canvas, 0)
+        # #
+        # #     # Undo the column stacking to final 4-dim tensor
+        # #     batch_canvas = batch_canvas.view(1, self.nchannels, self.ny, self.nx)
+        # #     return batch_canvas
+        # elif self.batch_size == 2:
+        #     first_canvas = torch.zeros(self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        #                                device=voxel_features.device)
+        #     # Only include non-empty pillars
+        #     first_batch_mask = coords[:, 0] == 0
+        #     first_this_coords = coords[first_batch_mask, :]
+        #     first_indices = first_this_coords[:, 2] * self.nx + first_this_coords[:, 3]
+        #     first_indices = first_indices.type(torch.long)
+        #     first_voxels = voxel_features[first_batch_mask, :]
+        #     first_voxels = first_voxels.t()
+        #
+        #     # Now scatter the blob back to the canvas.
+        #     first_canvas[:, first_indices] = first_voxels
+        #
+        #     # Append to a list for later stacking.
+        #     batch_canvas.append(first_canvas)
+        #
+        #     # Create the canvas for this sample
+        #     second_canvas = torch.zeros(self.nchannels, self.nx * self.ny, dtype=voxel_features.dtype,
+        #                                 device=voxel_features.device)
+        #
+        #     second_batch_mask = coords[:, 0] == 1
+        #     second_this_coords = coords[second_batch_mask, :]
+        #     second_indices = second_this_coords[:, 2] * self.nx + second_this_coords[:, 3]
+        #     second_indices = second_indices.type(torch.long)
+        #     second_voxels = voxel_features[second_batch_mask, :]
+        #     second_voxels = second_voxels.t()
+        #
+        #     # Now scatter the blob back to the canvas.
+        #     second_canvas[:, second_indices] = second_voxels
+        #
+        #     # Append to a list for later stacking.
+        #     batch_canvas.append(second_canvas)
+        #
+        #     # Stack to 3-dim tensor (batch-size, nchannels, nrows*ncols)
+        #     batch_canvas = torch.stack(batch_canvas, 0)
+        #
+        #     # Undo the column stacking to final 4-dim tensor
+        #     batch_canvas = batch_canvas.view(2, self.nchannels, self.ny, self.nx)
+        #     return batch_canvas
+        # else:
+        #     print("Expecting batch size less than 2")
+        #     return 0
