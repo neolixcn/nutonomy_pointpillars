@@ -394,10 +394,10 @@ if __name__ == "__main__":
     fp_cyc_pub = rospy.Publisher("fp_cyc_bbox", BoundingBoxArray, queue_size=10)
     fp_unk_pub = rospy.Publisher("fp_unk_bbox", BoundingBoxArray, queue_size=10)
 
-    val_path = "/home/shl/data/infos_val.pkl"
-    result_path = "/home/shl/data/pre_30_8cls/result.pkl"
-    result_path2 = ""
-    val_bin_path = "/data/data/dataset/shanghai_to_annotate/shanghai_puruan/val_bins/"
+    val_path = ""  ## val.pkl path
+    result_path = ""  ## result.pkl path
+    result_path2 = ""  ## result2.pkl path
+    val_bin_path = ""  ## val points path
     f1 = open(val_path, 'rb')
     val_infos = pickle.load(f1)
     f2 = open(result_path, 'rb')
