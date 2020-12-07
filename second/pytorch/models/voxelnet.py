@@ -330,7 +330,8 @@ class RPN(nn.Module):
                  num_groups=32,
                  use_bev=False,
                  box_code_size=7,
-                 name='rpn'):
+                 name='rpn',
+                 anchor_mask=True):
         super(RPN, self).__init__()
         self._num_anchor_per_loc = num_anchor_per_loc
         self._use_direction_classifier = use_direction_classifier
@@ -433,25 +434,39 @@ class RPN(nn.Module):
                 Conv2d(num_filters[2], num_filters[2], 3, padding=1))
             self.block3.add(BatchNorm2d(num_filters[2]))
             self.block3.add(nn.ReLU())
-        self.deconv3 = Sequential(
-            ConvTranspose2d(
-                num_filters[2],
-                num_upsample_filters[2],
-                upsample_strides[2],
-                stride=upsample_strides[2]),
-            BatchNorm2d(num_upsample_filters[2]),
-            nn.ReLU(),
-        )
+        if anchor_mask:
+            self.deconv3 = Sequential(
+                ConvTranspose2d(
+                    num_filters[2],
+                    num_upsample_filters[2],
+                    upsample_strides[2],
+                    stride=upsample_strides[2]),
+                BatchNorm2d(num_upsample_filters[2]),
+                nn.ReLU(),
+            )
+        else:
+            self.deconv3 = Sequential(
+                ConvTranspose2d(num_filters[2], 256, upsample_strides[2], stride=upsample_strides[2], groups=256),
+                BatchNorm2d(256),
+                nn.ReLU(),
+            )
+
         if encode_background_as_zeros:
             num_cls = num_anchor_per_loc * num_class
         else:
             num_cls = num_anchor_per_loc * (num_class + 1)
-        self.conv_cls = nn.Conv2d(sum(num_upsample_filters), num_cls, 1)
-        self.conv_box = nn.Conv2d(
-            sum(num_upsample_filters), num_anchor_per_loc * box_code_size, 1)
-        if use_direction_classifier:
-            self.conv_dir_cls = nn.Conv2d(
-                sum(num_upsample_filters), num_anchor_per_loc * 2, 1)
+        if anchor_mask:
+            self.conv_cls = nn.Conv2d(sum(num_upsample_filters), num_cls, 1)
+            self.conv_box = nn.Conv2d(
+                sum(num_upsample_filters), num_anchor_per_loc * box_code_size, 1)
+            if use_direction_classifier:
+                self.conv_dir_cls = nn.Conv2d(
+                    sum(num_upsample_filters), num_anchor_per_loc * 2, 1)
+        else:
+            self.conv_cls = nn.Conv2d(512, num_cls, 1)
+            self.conv_box = nn.Conv2d(512, num_anchor_per_loc * box_code_size, 1)
+            if use_direction_classifier:
+                self.conv_dir_cls = nn.Conv2d(512, num_anchor_per_loc * 2, 1)
 
     def forward(self, x, bev=None):
         x = self.block1(x)
@@ -536,7 +551,8 @@ class VoxelNet(nn.Module):
                  #voxel_size=(0.2, 0.2, 4),
                  #pc_range=(0, -40, -3, 70.4, 40, 1),
                  batch_size=2,
-                 name='voxelnet'):
+                 name='voxelnet',
+                 anchor_mask=True):
         super().__init__()
         self.name = name
         self._num_class = num_class
@@ -643,7 +659,9 @@ class VoxelNet(nn.Module):
             use_bev=use_bev,
             use_groupnorm=use_groupnorm,
             num_groups=num_groups,
-            box_code_size=target_assigner.box_coder.code_size)
+            box_code_size=target_assigner.box_coder.code_size,
+            anchor_mask=anchor_mask
+        )
 
         self.rpn_acc = metrics.Accuracy(dim=-1, encode_background_as_zeros=encode_background_as_zeros)
         self.rpn_precision = metrics.Precision(dim=-1)

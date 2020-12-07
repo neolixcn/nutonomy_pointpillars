@@ -180,8 +180,7 @@ class PointPillarsScatter(nn.Module):
         self.nchannels = num_input_features
         self.batch_size = batch_size
 
-    # def forward(self, voxel_features, coords, batch_size):
-    # def forward(self, voxel_features, coords):
+
     def forward(self, voxel_features, coords):
         # batch_canvas will be the final output.
         batch_canvas = []

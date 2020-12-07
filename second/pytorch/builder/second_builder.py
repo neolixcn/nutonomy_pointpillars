@@ -88,7 +88,8 @@ def build(model_cfg: second_pb2.VoxelNet, voxel_generator, target_assigner, batc
         loc_loss_ftor=loc_loss_ftor,
         cls_loss_ftor=cls_loss_ftor,
         target_assigner=target_assigner,
-        batch_size=batch_size
+        batch_size=batch_size,
+        anchors_mask_flag=model_cfg.anchors_mask
         #voxel_size=voxel_generator.voxel_size,
         #pc_range=voxel_generator.point_cloud_range
     )

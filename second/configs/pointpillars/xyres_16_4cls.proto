@@ -1,5 +1,6 @@
 model: {
   second: {
+    anchors_mask = True
     voxel_generator {
       point_cloud_range : [-23.04, -23.04, -1.5, 23.04, 23.04, 2.5]
       voxel_size : [0.16, 0.16, 4]
@@ -61,7 +62,6 @@ model: {
     nms_pre_max_size: 1000
     nms_post_max_size: 300
     nms_score_threshold: 0.2#0.05#0.05
-    nms_score_threshold: 0.2#0.05#0.05
     nms_iou_threshold: 0.2#0.5#0.5
 
     use_bev: false
@@ -79,7 +79,6 @@ anchor_generators: {
         sizes: [0.67, 0.67, 1.75]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
         offsets: [-22.96, -22.96, -0.22]  # origin_offset + strides / 2
-
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.5
         unmatched_threshold: 0.35
@@ -90,7 +89,6 @@ anchor_generators: {
         sizes: [1.88, 4.47, 1.65]  # wlh
         strides: [0.16, 0.16, 0.0]  # if generate only 1 z_center, z_stride will be ignored
         offsets: [-22.96, -22.96, -0.16]  # origin_offset + strides / 2
-
         rotations: [0, 1.57]  # 0, pi/2
         matched_threshold: 0.6
         unmatched_threshold: 0.45
@@ -133,7 +131,7 @@ anchor_generators: {
 train_input_reader: {
   record_file_path: "/data/sets/kitti_second/kitti_train.tfrecord"
   class_names: ["Pedestrian", "Vehicle", "Cyclist", "Unknown"]
-  max_num_epochs : 200
+  max_num_epochs : 250
   batch_size: 2
   prefetch_size : 25
   max_number_of_voxels: 10000
@@ -144,7 +142,8 @@ train_input_reader: {
   global_rotation_uniform_noise: [-0.78539816, 0.78539816]
   global_scaling_uniform_noise: [0.95, 1.05]
   global_random_rotation_range_per_object: [0, 0]
-  anchor_area_threshold: 1
+  anchor_area_threshold: 2
+  no_anchor_area_threshold: 0
   remove_points_after_sample: false
   groundtruth_points_drop_percentage: 0.0
   groundtruth_drop_max_keep_points: 15
@@ -227,7 +226,7 @@ train_config: {
   }
   inter_op_parallelism_threads: 4
   intra_op_parallelism_threads: 4
-  steps: 559000 #344200 #26400#1261920 # 1856 steps per epoch * 160 epochs
+  steps: 698750 #559000 #344200 #26400#1261920 # 1856 steps per epoch * 160 epochs
   steps_per_eval: 7000000 # 1856 steps per epoch * 5 epochs
   save_checkpoints_secs : 1800 # half hour
   save_summary_steps : 20
@@ -245,9 +244,11 @@ eval_input_reader: {
   max_number_of_voxels: 10000
   shuffle_points: false
   num_workers: 1
-  anchor_area_threshold: 1
+  anchor_area_threshold: 2
+  no_anchor_area_threshold: 0
   remove_environment: false
   kitti_info_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/infos_val.pkl"
   kitti_root_path: "/nfs/nas/datasets/songhongli/neolix_shanghai_5975/"
-
+  #kitti_info_path: "/nfs/nas/datasets/songhongli/ppbaidu_second_4cls/ppsecond4cls_infos_trainval.pkl"
+  #kitti_root_path: "/nfs/nas/datasets/songhongli/ppbaidu_second_4cls/"
 }
