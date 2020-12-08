@@ -71,7 +71,10 @@ def build(input_reader_config,
     # [352, 400]
     feature_map_size = grid_size[:2] // out_size_factor
     feature_map_size = [*feature_map_size, 1][::-1]
-
+    if cfg.anchors_mask == True:
+        anchor_area_threshold = cfg.anchor_area_threshold
+    else:
+        anchor_area_threshold = cfg.no_anchor_area_threshold
     prep_func = partial(
         prep_pointcloud,
         root_path=cfg.kitti_root_path,
@@ -96,7 +99,7 @@ def build(input_reader_config,
         generate_bev=generate_bev,
         without_reflectivity=without_reflectivity,
         num_point_features=num_point_features,
-        anchor_area_threshold=cfg.anchor_area_threshold,
+        anchor_area_threshold=anchor_area_threshold,
         gt_points_drop=cfg.groundtruth_points_drop_percentage,
         gt_drop_max_keep=cfg.groundtruth_drop_max_keep_points,
         remove_points_after_sample=cfg.remove_points_after_sample,
@@ -128,7 +131,7 @@ def build(input_reader_config,
         generate_bev=generate_bev,
         without_reflectivity=without_reflectivity,
         num_point_features=num_point_features,
-        anchor_area_threshold=cfg.anchor_area_threshold,
+        anchor_area_threshold=anchor_area_threshold,
         gt_points_drop=cfg.groundtruth_points_drop_percentage,
         gt_drop_max_keep=cfg.groundtruth_drop_max_keep_points,
         remove_points_after_sample=cfg.remove_points_after_sample,

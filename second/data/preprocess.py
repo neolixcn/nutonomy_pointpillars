@@ -281,7 +281,7 @@ def prep_pointcloud(input_dict,
             dense_voxel_map, anchors_bv, voxel_size, pc_range, grid_size)
         # print("anchor_area_threshold", anchor_area_threshold, '\n')
         # print("anchor_area", anchors_area.shape, '\n', anchors_area, '\n')
-        anchors_mask = anchors_area > anchor_area_threshold
+        anchors_mask = anchors_area >= anchor_area_threshold
         # example['anchors_mask'] = anchors_mask.astype(np.uint8)
         example['anchors_mask'] = anchors_mask
     if generate_bev:
